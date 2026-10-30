@@ -3,13 +3,14 @@ import { Link, useParams } from "react-router";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { useGroup, useMember, useRoles, useUpdateMember } from "../api/hooks";
 import type { Member, MembershipStatus } from "../api/types";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
 import { StatementView } from "../components/StatementView";
 import { Avatar, Badge, Dialog, ErrorState, Field, InlineError, PageHeader, Spinner, Toggle } from "../components/ui";
 import { formatDate, fullName, initials } from "../lib/format";
 
 /** MemberPage shows one member's details and contribution statement. */
 export function MemberPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const memberId = Number(useParams().memberId);
   const group = useGroup(groupId);
@@ -19,11 +20,11 @@ export function MemberPage() {
   if (member.isPending) return <Spinner label="Loading member" />;
   if (member.isError) return <ErrorState error={member.error} />;
   const m = member.data;
-  const official = group.data?.is_official ?? false;
+  const official = useManaging(group.data);
 
   return (
     <>
-      <Link to={`/g/${groupId}/members`} className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+      <Link to={`${base}/members`} className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
         <ChevronLeft className="size-4" aria-hidden /> Members
       </Link>
       <PageHeader

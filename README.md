@@ -43,21 +43,40 @@ Don't expose the API port to the internet. The API trusts `X-Forwarded-For` for 
 - `src/api/client.ts`: fetch wrapper. The access token lives in memory only; a page load restores the session by calling `/v1/auth/refresh` with the cookie. A 401 triggers one shared refresh and a retry, because the API rotates the refresh token on every use and treats a replay as theft.
 - `src/api/hooks.ts`: one TanStack Query hook per endpoint, with mutations that invalidate the group's cached data.
 - `src/auth/AuthProvider.tsx`: session state for the router guard and the login page.
-- `src/components/`: the app shell (sidebar, group switcher, mobile drawer), the statement view and a small UI kit.
-- `src/pages/`: one file per screen.
+- `src/components/`: the shared shell (sidebar, mobile drawer), the group shell and menus, the statement view and a small UI kit.
+- `src/api/admin.ts`: hooks for the platform admin endpoints.
+- `src/pages/`: one file per screen; `src/pages/admin/` holds the admin panel.
 
-## Screens (slice 1)
+## Sections and screens
+
+One app, one login, three sections. Each person lands in the section their role allows:
+
+- `/admin`: platform admins (the `admin` platform role). Everyone else is sent to `/groups`.
+- `/group/:id`: a group's officials, and platform admins opening any group. Members who aren't officials are sent to `/member/:id`.
+- `/member/:id`: a group's members. Officials can switch to it with "View as a member", which hides the official tools.
+
+Old `/g/:id/...` links redirect to `/group/:id/...`.
+
+Menus are fixed in code (`src/components/menus.ts`). Platform admins can switch group and member menu items off under Admin → Settings and menus; the API returns the switched-off ids in `/v1/me` as `disabled_menus`.
 
 | Route | Who | |
 | --- | --- | --- |
 | `/login` | everyone | Phone or email and password |
-| `/` , `/groups` | signed in | Group picker; `/` jumps into the last group used |
-| `/g/:id` | members | Overview: my balance, group stats, contributions |
-| `/g/:id/statement` | members | My contribution statement with date and contribution filters, CSV export |
-| `/g/:id/members` | members | Member directory; officials can search by phone, filter by status and add members |
-| `/g/:id/members/:memberId` | officials, or yourself | Member details and statement; officials can edit office, number and status |
-| `/g/:id/contributions` | members | Contributions (hidden ones for officials only) |
-| `/g/:id/contributions/new`, `/:contributionId` | officials edit | Create and edit, with schedule and member selection |
-| `/g/:id/arrears` | officials | Every active member's balance, most owed first |
+| `/` , `/groups` | signed in | Group picker and the admin panel link; `/` jumps into the last group used |
+| `/group/:id`, `/member/:id` | officials, members | Overview: my balance, group stats, contributions |
+| `…/statement` | members | My contribution statement with date and contribution filters, CSV export |
+| `…/members` | members | Member directory; officials can search by phone, filter by status and add members |
+| `…/members/:memberId` | officials, or yourself | Member details and statement; officials can edit office, number and status |
+| `…/contributions` | members | Contributions (hidden ones for officials only) |
+| `/group/:id/contributions/new`, `/:contributionId` | officials edit | Create and edit, with schedule and member selection |
+| `/group/:id/arrears` | officials | Every active member's balance, most owed first |
+| `/admin` | platform admins | Platform counts and recent admin changes |
+| `/admin/groups` | platform admins | Search groups, open one as an official, suspend, close or reactivate |
+| `/admin/users`, `/admin/users/:id` | platform admins | Search, add and edit users, platform roles, set passwords, deactivate |
+| `/admin/transactions` | platform admins | Ledger entries across every group, with filters |
+| `/admin/banks`, `/admin/banks/:id` | platform admins | Banks and their branches |
+| `/admin/places` | platform admins | Countries (and the default country) and counties |
+| `/admin/settings` | platform admins | Menu switches and the imported platform settings |
+| `/admin/audit` | platform admins | The latest 100 admin changes |
 
 Money comes from the API as two-decimal strings and is only formatted here, never summed for anything stored.

@@ -1,14 +1,38 @@
-import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
-import { ChevronsUpDown, FileText, HandCoins, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, X } from "lucide-react";
+import { Link, Navigate, useLocation, useParams } from "react-router";
+import { ChevronsUpDown } from "lucide-react";
 import { useGroup, useMe } from "../api/hooks";
-import { useAuth } from "../auth/AuthProvider";
-import { fullName, initials } from "../lib/format";
-import { Avatar, cx, ErrorState, Spinner } from "./ui";
+import type { Group } from "../api/types";
+import { isMenuOff, menuNav } from "./menus";
+import { Shell } from "./Shell";
+import { ErrorState, Spinner } from "./ui";
+
+/** The group sections: officials manage the group, members see their own records. */
+export type Section = "group" | "member";
 
 export function useGroupId(): number {
   const { groupId } = useParams();
   return Number(groupId);
+}
+
+/** useGroupBase is the URL prefix of the current group section, like /group/15. */
+export function useGroupBase(): string {
+  const { pathname } = useLocation();
+  const section: Section = pathname.startsWith("/member/") ? "member" : "group";
+  return `/${section}/${useGroupId()}`;
+}
+
+/**
+ * useManaging tells a page whether to show official tools: only in the
+ * /group section. An official viewing /member sees what members see.
+ */
+export function useManaging(g: { is_official: boolean } | undefined): boolean {
+  const { pathname } = useLocation();
+  return !!g?.is_official && !pathname.startsWith("/member/");
+}
+
+/** sectionFor picks the section a user lands in for a group. */
+export function sectionFor(g: { is_official: boolean }): Section {
+  return g.is_official ? "group" : "member";
 }
 
 const lastGroupKey = "legion.lastGroup";
@@ -30,11 +54,16 @@ export function lastGroup(): number | null {
   }
 }
 
-/** AppShell is the signed-in layout for one group: sidebar, top bar, page. */
-export function AppShell() {
+/**
+ * AppShell is the layout for one group. It sends people to the section
+ * their role allows: members away from /group, and admins who aren't
+ * members away from /member.
+ */
+export function AppShell({ section }: { section: Section }) {
   const groupId = useGroupId();
   const group = useGroup(groupId);
-  const [navOpen, setNavOpen] = useState(false);
+  const me = useMe();
+  const { pathname } = useLocation();
 
   if (group.isPending) return <Spinner label="Loading group" />;
   if (group.isError) {
@@ -50,119 +79,52 @@ export function AppShell() {
     );
   }
   const g = group.data;
+  if (section === "group" && !g.is_official) return <Navigate to={`/member/${g.id}`} replace />;
+  if (section === "member" && g.my_membership_id == null) {
+    return <Navigate to={pathname.replace(/^\/member\//, "/group/")} replace />;
+  }
   rememberGroup(g.id);
-  const base = `/g/${g.id}`;
-  const nav = [
-    { to: base, label: "Overview", icon: LayoutDashboard, end: true, show: true },
-    { to: `${base}/statement`, label: "My statement", icon: FileText, show: g.my_membership_id != null },
-    { to: `${base}/contributions`, label: "Contributions", icon: HandCoins, show: true },
-    { to: `${base}/members`, label: "Members", icon: Users, show: true },
-    { to: `${base}/arrears`, label: "Arrears", icon: ShieldCheck, show: g.is_official },
-  ].filter((n) => n.show);
-
-  const sidebar = (
-    <nav aria-label="Group" className="flex h-full flex-col gap-1 p-3">
-      <GroupSwitcher name={g.name} official={g.is_official} admin={g.platform_admin} />
-      <div className="mt-3 space-y-1">
-        {nav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.end}
-            onClick={() => setNavOpen(false)}
-            className={({ isActive }) =>
-              cx(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                isActive
-                  ? "bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-              )
-            }
-          >
-            <n.icon className="size-4" aria-hidden />
-            {n.label}
-          </NavLink>
-        ))}
-      </div>
-      <div className="mt-auto">
-        <UserMenu />
-      </div>
-    </nav>
-  );
-
+  const base = `/${section}/${g.id}`;
+  const disabled = me.data?.disabled_menus ?? [];
+  // A switched-off menu also closes its page. Detail pages stay reachable
+  // from elsewhere, like a member opened from the arrears list.
+  if (isMenuOff(section, pathname.slice(base.length + 1), disabled)) return <Navigate to={base} replace />;
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
-      <aside className="hidden border-r border-slate-200 bg-white lg:block dark:border-slate-800 dark:bg-slate-900">
-        <div className="sticky top-0 h-dvh">{sidebar}</div>
-      </aside>
-
-      <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden dark:border-slate-800 dark:bg-slate-900/90">
-        <button className="btn-ghost -ml-2 p-2" onClick={() => setNavOpen(true)} aria-label="Open menu">
-          <Menu className="size-5" />
-        </button>
-        <span className="truncate font-semibold">{g.name}</span>
-      </header>
-      {navOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-slate-950/40" onClick={() => setNavOpen(false)} aria-hidden />
-          <div className="absolute inset-y-0 left-0 w-72 bg-white shadow-xl dark:bg-slate-900">
-            <button className="btn-ghost absolute top-3 right-3 p-2" onClick={() => setNavOpen(false)} aria-label="Close menu">
-              <X className="size-4" />
-            </button>
-            {sidebar}
-          </div>
-        </div>
-      )}
-
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-        <Outlet />
-      </main>
-    </div>
+    <Shell
+      label="Group"
+      title={g.name}
+      header={<GroupSwitcher g={g} section={section} />}
+      nav={menuNav(section, base, g, disabled)}
+    />
   );
 }
 
-function GroupSwitcher({ name, official, admin }: { name: string; official: boolean; admin: boolean }) {
+function GroupSwitcher({ g, section }: { g: Group; section: Section }) {
+  const role = g.platform_admin && g.my_membership_id == null ? "Platform admin" : section === "group" ? "Official" : "Member";
   return (
-    <Link
-      to="/groups"
-      className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
-      title="Switch group"
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-sm font-semibold text-white">
-        {name.slice(0, 1).toUpperCase()}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{name}</span>
-        <span className="block text-xs text-slate-500">{admin ? "Platform admin" : official ? "Official" : "Member"}</span>
-      </span>
-      <ChevronsUpDown className="size-4 text-slate-400" aria-hidden />
-    </Link>
-  );
-}
-
-function UserMenu() {
-  const me = useMe();
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const u = me.data?.user;
-  return (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-      {u && <Avatar text={initials(u)} />}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{u ? fullName(u) : "…"}</p>
-        <p className="truncate text-xs text-slate-500">{u?.phone ?? u?.email}</p>
-      </div>
-      <button
-        className="btn-ghost p-2"
-        aria-label="Log out"
-        title="Log out"
-        onClick={async () => {
-          await logout();
-          navigate("/login", { replace: true });
-        }}
+    <div>
+      <Link
+        to="/groups"
+        className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
+        title="Switch group"
       >
-        <LogOut className="size-4" />
-      </button>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-700 text-sm font-semibold text-white">
+          {g.name.slice(0, 1).toUpperCase()}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{g.name}</span>
+          <span className="block text-xs text-slate-500">{role}</span>
+        </span>
+        <ChevronsUpDown className="size-4 text-slate-400" aria-hidden />
+      </Link>
+      {g.is_official && g.my_membership_id != null && (
+        <Link
+          to={section === "group" ? `/member/${g.id}` : `/group/${g.id}`}
+          className="mt-2 block px-3 text-xs font-medium text-brand-700 hover:underline dark:text-brand-300"
+        >
+          {section === "group" ? "View as a member" : "Back to managing the group"}
+        </Link>
+      )}
     </div>
   );
 }

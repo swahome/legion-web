@@ -36,6 +36,8 @@ export interface Me {
   user: User;
   platform_roles: string[];
   memberships: Membership[];
+  /** Menu ids a platform admin switched off, like "group.arrears". */
+  disabled_menus: string[];
 }
 
 export interface Group {

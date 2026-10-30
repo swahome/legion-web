@@ -2,11 +2,12 @@ import { useDeferredValue, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Search, UserPlus } from "lucide-react";
 import { useAddMember, useGroup, useMembers, useRoles } from "../api/hooks";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
 import { Avatar, Badge, Dialog, EmptyState, ErrorState, Field, InlineError, PageHeader, Spinner, Toggle } from "../components/ui";
 import { formatDate, fullName, initials } from "../lib/format";
 
 export function MembersPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const group = useGroup(groupId);
   const [q, setQ] = useState("");
@@ -14,7 +15,7 @@ export function MembersPage() {
   const [adding, setAdding] = useState(false);
   const search = useDeferredValue(q.trim());
   const members = useMembers(groupId, status, search);
-  const official = group.data?.is_official ?? false;
+  const official = useManaging(group.data);
 
   return (
     <>
@@ -83,7 +84,7 @@ export function MembersPage() {
               </>
             );
             return canOpen ? (
-              <Link key={m.id} to={`/g/${groupId}/members/${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <Link key={m.id} to={`${base}/members/${m.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 {row}
               </Link>
             ) : (
@@ -101,6 +102,7 @@ export function MembersPage() {
 }
 
 function AddMemberDialog({ groupId, open, onClose }: { groupId: number; open: boolean; onClose: () => void }) {
+  const base = useGroupBase();
   const add = useAddMember(groupId);
   const roles = useRoles(groupId);
   const navigate = useNavigate();
@@ -128,7 +130,7 @@ function AddMemberDialog({ groupId, open, onClose }: { groupId: number; open: bo
     if (m) {
       setForm({ first_name: "", last_name: "", phone: "", email: "", membership_number: "", role_id: "", is_official: false });
       close();
-      navigate(`/g/${groupId}/members/${m.id}`);
+      navigate(`${base}/members/${m.id}`);
     }
   }
 

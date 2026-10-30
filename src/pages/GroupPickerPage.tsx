@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, LogOut } from "lucide-react";
+import { ArrowRight, LogOut, ShieldCheck } from "lucide-react";
 import { useMe } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
-import { lastGroup } from "../components/AppShell";
+import { lastGroup, sectionFor } from "../components/AppShell";
 import { Badge, EmptyState, ErrorState, Spinner } from "../components/ui";
 import { fullName } from "../lib/format";
 
@@ -29,15 +29,16 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
   const { user, memberships, platform_roles } = me.data;
   const isAdmin = platform_roles.includes("admin");
   if (autoEnter && !params.has("pick")) {
-    const last = lastGroup();
-    if (last && memberships.some((m) => m.group_id === last)) return <Navigate to={`/g/${last}`} replace />;
-    if (memberships.length === 1 && !isAdmin) return <Navigate to={`/g/${memberships[0]!.group_id}`} replace />;
+    const last = memberships.find((m) => m.group_id === lastGroup());
+    if (last) return <Navigate to={`/${sectionFor(last)}/${last.group_id}`} replace />;
+    if (memberships.length === 1 && !isAdmin) return <Navigate to={`/${sectionFor(memberships[0]!)}/${memberships[0]!.group_id}`} replace />;
+    if (memberships.length === 0 && isAdmin) return <Navigate to="/admin" replace />;
   }
 
   function openById(e: FormEvent) {
     e.preventDefault();
     const id = Number(groupIdInput);
-    if (id > 0) navigate(`/g/${id}`);
+    if (id > 0) navigate(`/group/${id}`);
   }
 
   return (
@@ -58,6 +59,19 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
         </button>
       </div>
 
+      {isAdmin && (
+        <Link to="/admin" className="card mb-8 flex items-center gap-4 px-5 py-4 transition hover:border-brand-300">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+            <ShieldCheck className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">Admin panel</span>
+            <span className="block text-sm text-slate-500">Groups, users, banks, settings and menus</span>
+          </span>
+          <ArrowRight className="size-4 text-slate-400" aria-hidden />
+        </Link>
+      )}
+
       <h2 className="mb-3 text-sm font-semibold text-slate-500 uppercase">Your groups</h2>
       <div className="card divide-y divide-slate-200 dark:divide-slate-800">
         {memberships.length === 0 && (
@@ -66,7 +80,7 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
         {memberships.map((m) => (
           <Link
             key={m.membership_id}
-            to={`/g/${m.group_id}`}
+            to={`/${sectionFor(m)}/${m.group_id}`}
             className="flex items-center gap-4 px-5 py-4 transition first:rounded-t-2xl last:rounded-b-2xl hover:bg-slate-50 dark:hover:bg-slate-800/60"
           >
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 font-semibold text-white">
