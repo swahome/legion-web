@@ -25,14 +25,18 @@ The dev server proxies `/v1` to `LEGION_API_URL`, so the app and API share one o
 
 ## Deploying
 
-`npm run build` produces static files in `dist/`. Serve them from the same origin as the API, with `/v1/*` going to legion-api and every other path falling back to `index.html` (client-side routing). For example with Caddy:
+`npm run build` produces static files in `dist/`. Serve them and the API from the same site: the web server serves `dist/` and forwards `/v1/*` to legion-api, which listens on its own port on the same host and is bound to loopback. The browser only ever talks to the site, so the refresh cookie stays on one origin. Any path that isn't `/v1` falls back to `index.html`, because routing happens in the browser.
+
+For example, with the site at `https://legion.com` and the API's `.env` set to `LEGION_ADDR=127.0.0.1:8089` and `LEGION_COOKIE_SECURE=true`:
 
 ```
-legion.example.com {
-  handle /v1/* { reverse_proxy localhost:8080 }
+legion.com {
+  handle /v1/* { reverse_proxy 127.0.0.1:8089 }
   handle { root * /srv/legion-web/dist; try_files {path} /index.html; file_server }
 }
 ```
+
+Don't expose the API port to the internet. The API trusts `X-Forwarded-For` for the client IP that the login lockout counts, so only the proxy should reach it. The legion-api README has the details, including the nginx header to set.
 
 ## How it's put together
 
