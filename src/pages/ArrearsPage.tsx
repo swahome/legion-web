@@ -1,11 +1,12 @@
 import { Link } from "react-router";
 import { useBalances, useGroup } from "../api/hooks";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId } from "../components/AppShell";
 import { Balance, EmptyState, ErrorState, PageHeader, Spinner, Stat } from "../components/ui";
 import { formatMoney, isNegative, isZero } from "../lib/format";
 
 /** ArrearsPage lists every active member's contribution balance (officials). */
 export function ArrearsPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const group = useGroup(groupId);
   const b = useBalances(groupId);
@@ -42,7 +43,7 @@ export function ArrearsPage() {
               {balances.map((x) => (
                 <tr key={x.membership_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                   <td className="px-4 py-3">
-                    <Link to={`/g/${groupId}/members/${x.membership_id}`} className="font-medium hover:underline">
+                    <Link to={`${base}/members/${x.membership_id}`} className="font-medium hover:underline">
                       {x.first_name} {x.last_name}
                     </Link>
                     {x.membership_number && <span className="ml-2 text-xs text-slate-500">No. {x.membership_number}</span>}

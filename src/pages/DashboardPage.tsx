@@ -1,11 +1,12 @@
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import { useContributions, useGroup, useStatement } from "../api/hooks";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId } from "../components/AppShell";
 import { Badge, Balance, balanceHint, PageHeader, Spinner, Stat } from "../components/ui";
 import { formatDate, formatMoney, frequencyLabels } from "../lib/format";
 
 export function DashboardPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const group = useGroup(groupId);
   const contributions = useContributions(groupId);
@@ -28,16 +29,16 @@ export function DashboardPage() {
       <section className="mt-10">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Contributions</h2>
-          <Link to={`/g/${groupId}/contributions`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300">
+          <Link to={`${base}/contributions`} className="text-sm font-medium text-brand-700 hover:underline dark:text-brand-300">
             View all
           </Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {contributions.data
             ?.filter((c) => c.is_active)
             .slice(0, 4)
             .map((c) => (
-              <Link key={c.id} to={`/g/${groupId}/contributions/${c.id}`} className="card group p-5 transition hover:border-brand-300">
+              <Link key={c.id} to={`${base}/contributions/${c.id}`} className="card group min-w-0 p-5 transition hover:border-brand-300">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{c.name}</p>
@@ -59,10 +60,11 @@ export function DashboardPage() {
 }
 
 function MyBalance({ groupId, memberId, currency }: { groupId: number; memberId: number; currency: string }) {
+  const base = useGroupBase();
   const st = useStatement(groupId, memberId, {});
   const balance = st.data ? st.data.totals.reduce((s, t) => s + Number(t.balance), 0).toFixed(2) : null;
   return (
-    <Link to={`/g/${groupId}/statement`} className="card group p-5 transition hover:border-brand-300">
+    <Link to={`${base}/statement`} className="card group min-w-0 p-5 transition hover:border-brand-300">
       <p className="flex items-center justify-between text-sm text-slate-500">
         My balance <ArrowRight className="size-4 opacity-0 transition group-hover:opacity-100" aria-hidden />
       </p>

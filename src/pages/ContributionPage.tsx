@@ -3,12 +3,13 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ChevronLeft } from "lucide-react";
 import { useContribution, useGroup, useMembers, useSaveContribution, type ContributionInput } from "../api/hooks";
 import type { Contribution, ContributionCategory, ContributionKind, Frequency } from "../api/types";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
 import { Badge, ErrorState, Field, InlineError, PageHeader, Spinner, Toggle } from "../components/ui";
 import { categoryLabels, formatDate, formatMoney, frequencyLabels, fullName, kindLabels } from "../lib/format";
 
 /** ContributionPage shows a contribution; officials edit it in place. "new" creates one. */
 export function ContributionPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const raw = useParams().contributionId;
   const isNew = raw === "new";
@@ -16,12 +17,13 @@ export function ContributionPage() {
   const group = useGroup(groupId);
   const c = useContribution(groupId, id, !isNew);
   const [editing, setEditing] = useState(false);
+  const managing = useManaging(group.data);
 
   if (!group.data || (!isNew && c.isPending)) return <Spinner />;
   if (!isNew && c.isError) return <ErrorState error={c.error} />;
-  const official = group.data.is_official;
+  const official = managing;
   const back = (
-    <Link to={`/g/${groupId}/contributions`} className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+    <Link to={`${base}/contributions`} className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
       <ChevronLeft className="size-4" aria-hidden /> Contributions
     </Link>
   );
@@ -128,6 +130,7 @@ function describeChargeable(v: string): string {
 const frequencies = Object.keys(frequencyLabels) as Frequency[];
 
 function ContributionForm({ groupId, existing, onDone }: { groupId: number; existing?: Contribution; onDone: () => void }) {
+  const base = useGroupBase();
   const save = useSaveContribution(groupId, existing?.id);
   const members = useMembers(groupId, "active");
   const navigate = useNavigate();
@@ -177,7 +180,7 @@ function ContributionForm({ groupId, existing, onDone }: { groupId: number; exis
     const saved = await save.mutateAsync(input).catch(() => null);
     if (!saved) return;
     if (existing) onDone();
-    else navigate(`/g/${groupId}/contributions/${saved.id}`, { replace: true });
+    else navigate(`${base}/contributions/${saved.id}`, { replace: true });
   }
 
   return (

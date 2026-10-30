@@ -1,15 +1,16 @@
 import { Link } from "react-router";
 import { EyeOff, Plus } from "lucide-react";
 import { useContributions, useGroup } from "../api/hooks";
-import { useGroupId } from "../components/AppShell";
+import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
 import { Badge, EmptyState, ErrorState, PageHeader, Spinner } from "../components/ui";
 import { categoryLabels, formatDate, formatMoney, frequencyLabels, kindLabels } from "../lib/format";
 
 export function ContributionsPage() {
+  const base = useGroupBase();
   const groupId = useGroupId();
   const group = useGroup(groupId);
   const list = useContributions(groupId);
-  const official = group.data?.is_official ?? false;
+  const official = useManaging(group.data);
   const currency = group.data?.currency ?? "KES";
 
   return (
@@ -19,7 +20,7 @@ export function ContributionsPage() {
         subtitle="What members pay into the group, and how often."
         actions={
           official && (
-            <Link to={`/g/${groupId}/contributions/new`} className="btn-primary">
+            <Link to={`${base}/contributions/new`} className="btn-primary">
               <Plus className="size-4" aria-hidden /> New contribution
             </Link>
           )
@@ -48,7 +49,7 @@ export function ContributionsPage() {
               {list.data.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                   <td className="px-4 py-3">
-                    <Link to={`/g/${groupId}/contributions/${c.id}`} className="font-medium hover:underline">
+                    <Link to={`${base}/contributions/${c.id}`} className="font-medium hover:underline">
                       {c.name}
                     </Link>
                     <span className="mt-1 flex flex-wrap gap-1.5">
