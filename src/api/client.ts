@@ -89,6 +89,10 @@ export class Client {
     return this.request<T>("PATCH", path, body);
   }
 
+  delete<T>(path: string): Promise<T> {
+    return this.request<T>("DELETE", path);
+  }
+
   /** request sends an authenticated call, refreshing once on an expired token. */
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     if (!this.accessToken) await this.refresh();
