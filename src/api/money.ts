@@ -343,3 +343,253 @@ export function useInstitutionBranches(kind: AccountKind, institutionId: number 
     staleTime: 10 * 60_000,
   });
 }
+
+// Money out: withdrawals, transfers and withdrawal requests (milestone 3, part 2).
+
+export type WithdrawalKind =
+  | "expense"
+  | "asset_purchase"
+  | "loan_disbursement"
+  | "stock_purchase"
+  | "money_market_investment"
+  | "contribution_refund"
+  | "bank_loan_repayment"
+  | "funds_transfer"
+  | "external_loan_disbursement"
+  | "dividend";
+
+export const withdrawalKindLabels: Record<WithdrawalKind, string> = {
+  expense: "Expense",
+  asset_purchase: "Asset purchase",
+  loan_disbursement: "Loan disbursement",
+  stock_purchase: "Stock purchase",
+  money_market_investment: "Money market investment",
+  contribution_refund: "Contribution refund",
+  bank_loan_repayment: "Bank loan repayment",
+  funds_transfer: "Funds transfer",
+  external_loan_disbursement: "External loan",
+  dividend: "Dividend",
+};
+
+/** Withdrawals an official can record by hand today. */
+export const recordableWithdrawals = ["expense", "contribution_refund"] as const;
+export type RecordableWithdrawal = (typeof recordableWithdrawals)[number];
+
+export interface Withdrawal {
+  id: number;
+  kind: WithdrawalKind;
+  method: PaymentMethod | null;
+  amount: Money;
+  date: string;
+  description: string;
+  account: NamedRef | null;
+  account_kind: AccountKind;
+  member: NamedRef | null;
+  contribution: NamedRef | null;
+  expense_category: NamedRef | null;
+  created_at: string;
+  voided_at: string | null;
+}
+
+export interface Withdrawals {
+  withdrawals: Paged<Withdrawal>;
+  totals_by_kind: Partial<Record<WithdrawalKind, Money>>;
+}
+
+export interface WithdrawalParams {
+  kind?: WithdrawalKind;
+  member_id?: number;
+  account_id?: number;
+  from?: string;
+  to?: string;
+  include_voided?: boolean;
+  page?: number;
+}
+
+export interface WithdrawalInput {
+  kind: RecordableWithdrawal;
+  account_id: number;
+  amount: string;
+  date: string;
+  method?: PaymentMethod;
+  description?: string;
+  member_id?: number;
+  contribution_id?: number;
+  expense_category_id?: number;
+}
+
+export function useWithdrawals(groupId: number, params: WithdrawalParams) {
+  return useQuery({
+    queryKey: ["group", groupId, "withdrawals", params],
+    queryFn: () => api.get<Withdrawals>(`${g(groupId)}/withdrawals${query(params)}`),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useRecordWithdrawal(groupId: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: (input: WithdrawalInput) => api.post<Withdrawal>(g(groupId) + "/withdrawals", input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useVoidWithdrawal(groupId: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: (id: number) => api.post<Withdrawal>(`${g(groupId)}/withdrawals/${id}/void`, {}),
+    onSuccess: invalidate,
+  });
+}
+
+export interface Transfer {
+  id: number;
+  amount: Money;
+  date: string;
+  description: string;
+  from_account: NamedRef | null;
+  to_account: NamedRef | null;
+  created_at: string;
+  voided_at: string | null;
+}
+
+export interface TransferInput {
+  from_account_id: number;
+  to_account_id: number;
+  amount: string;
+  date: string;
+  description?: string;
+}
+
+export function useTransfers(groupId: number, params: { include_voided?: boolean; page?: number }) {
+  return useQuery({
+    queryKey: ["group", groupId, "transfers", params],
+    queryFn: () => api.get<{ transfers: Paged<Transfer> }>(`${g(groupId)}/transfers${query(params)}`).then((r) => r.transfers),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useRecordTransfer(groupId: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: (input: TransferInput) => api.post<Transfer>(g(groupId) + "/transfers", input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useVoidTransfer(groupId: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: (id: number) => api.post<Transfer>(`${g(groupId)}/transfers/${id}/void`, {}),
+    onSuccess: invalidate,
+  });
+}
+
+export type RequestStatus = "pending" | "approved" | "declined" | "cancelled" | "paid" | "failed";
+
+export const requestStatusLabels: Record<RequestStatus, string> = {
+  pending: "Waiting for approval",
+  approved: "Approved, not paid",
+  declined: "Declined",
+  cancelled: "Cancelled",
+  paid: "Paid",
+  failed: "Payment failed",
+};
+
+export type Recipient =
+  | { type: "mobile"; phone: string }
+  | { type: "paybill"; paybill: string; account_number?: string }
+  | { type: "bank"; bank_id: number; account_number: string; account_name: string };
+
+export interface Approval {
+  member_id: number;
+  name: string;
+  role: string | null;
+  decision: "pending" | "approved" | "declined";
+  decided_at: string | null;
+  comment: string;
+}
+
+export interface WithdrawalRequest {
+  id: number;
+  reference_number: string;
+  kind: WithdrawalKind;
+  status: RequestStatus;
+  amount: Money;
+  description: string;
+  account: NamedRef | null;
+  to_account: NamedRef | null;
+  expense_category: NamedRef | null;
+  member: NamedRef | null;
+  contribution: NamedRef | null;
+  requested_by: NamedRef | null;
+  recipient: Partial<Recipient> & { type?: string };
+  approvals: number;
+  signatories: number;
+  decided_at: string | null;
+  decline_reason: string;
+  withdrawal_id: number | null;
+  transfer_id: number | null;
+  created_at: string;
+}
+
+export interface WithdrawalRequestDetail extends WithdrawalRequest {
+  approval_list: Approval[];
+  my_decision: Approval["decision"] | null;
+}
+
+/** Kinds that can go through a withdrawal request. */
+export const requestKinds = ["expense", "contribution_refund", "funds_transfer"] as const;
+export type RequestKind = (typeof requestKinds)[number];
+
+export interface WithdrawalRequestInput {
+  kind: RequestKind;
+  account_id: number;
+  amount: string;
+  description?: string;
+  to_account_id?: number;
+  expense_category_id?: number;
+  member_id?: number;
+  contribution_id?: number;
+  recipient?: Recipient;
+}
+
+export function useWithdrawalRequests(groupId: number, params: { status?: RequestStatus; awaiting?: "me"; page?: number }) {
+  return useQuery({
+    queryKey: ["group", groupId, "withdrawal-requests", params],
+    queryFn: () =>
+      api.get<{ requests: Paged<WithdrawalRequest> }>(`${g(groupId)}/withdrawal-requests${query(params)}`).then((r) => r.requests),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useWithdrawalRequest(groupId: number, id: number | null) {
+  return useQuery({
+    queryKey: ["group", groupId, "withdrawal-request", id],
+    queryFn: () => api.get<WithdrawalRequestDetail>(`${g(groupId)}/withdrawal-requests/${id}`),
+    enabled: id != null,
+  });
+}
+
+export function useCreateWithdrawalRequest(groupId: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: (input: WithdrawalRequestInput) => api.post<WithdrawalRequestDetail>(g(groupId) + "/withdrawal-requests", input),
+    onSuccess: invalidate,
+  });
+}
+
+export type RequestAction =
+  | { action: "approve"; password: string }
+  | { action: "decline"; password: string; reason: string }
+  | { action: "cancel"; reason?: string }
+  | { action: "pay"; date: string; method?: PaymentMethod };
+
+export function useRequestAction(groupId: number, id: number) {
+  const invalidate = useInvalidateMoney(groupId);
+  return useMutation({
+    mutationFn: ({ action, ...body }: RequestAction) =>
+      api.post<WithdrawalRequestDetail>(`${g(groupId)}/withdrawal-requests/${id}/${action}`, body),
+    onSuccess: invalidate,
+  });
+}

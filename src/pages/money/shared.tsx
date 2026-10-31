@@ -1,4 +1,5 @@
-import { ErrorState } from "../../components/ui";
+import { methodLabels } from "../../api/money";
+import { ErrorState, Field } from "../../components/ui";
 
 export function OfficialsOnly() {
   return <ErrorState error={new Error("Only group officials can see the group's money.")} />;
@@ -35,6 +36,58 @@ export function DateRange({
         <span className="label">To</span>
         <input type="date" className="input" value={to} min={from} onChange={(e) => e.target.value && onChange({ from, to: e.target.value })} />
       </label>
+    </div>
+  );
+}
+
+/** isAmount accepts a positive amount with at most two decimals. */
+export function isAmount(v: string): boolean {
+  return /^\d+(\.\d{1,2})?$/.test(v) && Number(v) > 0;
+}
+
+/** AmountDateMethod is the amount, date and payment method row of a money form. */
+export function AmountDateMethod({
+  idPrefix,
+  currency,
+  form,
+  set,
+  method = true,
+}: {
+  idPrefix: string;
+  currency: string;
+  form: { amount: string; date: string; method?: string };
+  set: (k: "amount" | "date" | "method") => (v: string) => void;
+  method?: boolean;
+}) {
+  return (
+    <div className={`grid gap-4 ${method ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <Field label={`Amount (${currency})`} htmlFor={`${idPrefix}-amount`}>
+        <input
+          id={`${idPrefix}-amount`}
+          className="input"
+          inputMode="decimal"
+          placeholder="0.00"
+          pattern="\d+(\.\d{1,2})?"
+          value={form.amount}
+          onChange={(e) => set("amount")(e.target.value.trim())}
+          required
+        />
+      </Field>
+      <Field label="Date" htmlFor={`${idPrefix}-date`}>
+        <input id={`${idPrefix}-date`} type="date" className="input" max={todayISO()} value={form.date} onChange={(e) => set("date")(e.target.value)} required />
+      </Field>
+      {method && (
+        <Field label="Method" htmlFor={`${idPrefix}-method`}>
+          <select id={`${idPrefix}-method`} className="input" value={form.method ?? ""} onChange={(e) => set("method")(e.target.value)}>
+            <option value="">—</option>
+            {Object.entries(methodLabels).map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
     </div>
   );
 }

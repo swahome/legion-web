@@ -52,6 +52,9 @@ export interface Group {
   my_membership_id: number | null;
   is_official: boolean;
   platform_admin: boolean;
+  /** Answers withdrawal requests (holds a group role). */
+  is_signatory?: boolean;
+  withdrawal_requests_awaiting_me?: number;
   summary: {
     active_members: number;
     officials: number;
