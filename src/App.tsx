@@ -15,6 +15,10 @@ import { LoanApplicationsPage } from "./pages/loans/LoanApplicationsPage";
 import { LoanPage } from "./pages/loans/LoanPage";
 import { LoansPage } from "./pages/loans/LoansPage";
 import { LoanTypesPage } from "./pages/loans/LoanTypesPage";
+import { BankLoanPage } from "./pages/lending/BankLoanPage";
+import { BankLoansPage } from "./pages/lending/BankLoansPage";
+import { DebtorPage } from "./pages/lending/DebtorPage";
+import { DebtorsPage } from "./pages/lending/DebtorsPage";
 import { AccountsPage } from "./pages/money/AccountsPage";
 import { CashBookPage } from "./pages/money/CashBookPage";
 import { CategoriesPage } from "./pages/money/CategoriesPage";
@@ -75,6 +79,11 @@ export function App() {
         <Route path="loans/:loanId" element={<LoanPage />} />
         <Route path="loan-applications" element={<LoanApplicationsPage />} />
         <Route path="loan-types" element={<LoanTypesPage />} />
+        <Route path="bank-loans" element={<BankLoansPage />} />
+        <Route path="bank-loans/:bankLoanId" element={<BankLoanPage />} />
+        <Route path="debtors" element={<DebtorsPage />} />
+        <Route path="debtors/:debtorId" element={<DebtorPage />} />
+        <Route path="debtor-loan-types" element={<LoanTypesPage forDebtors />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/member/:groupId" element={<RequireAuth><AppShell section="member" /></RequireAuth>}>
@@ -88,6 +97,8 @@ export function App() {
         <Route path="fines" element={<FinesPage />} />
         <Route path="loans" element={<LoansPage />} />
         <Route path="loans/:loanId" element={<LoanPage />} />
+        <Route path="bank-loans" element={<BankLoansPage />} />
+        <Route path="bank-loans/:bankLoanId" element={<BankLoanPage />} />
         <Route path="loan-applications" element={<LoanApplicationsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>

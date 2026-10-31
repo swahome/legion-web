@@ -102,6 +102,8 @@ export interface LoanType {
   fine_deferment: boolean;
   needs_approval: boolean;
   is_hidden: boolean;
+  /** Offered to debtors (people outside the group), not members. Fixed when the type is made. */
+  for_debtors: boolean;
 }
 
 export type LoanTypeInput = Omit<LoanType, "id" | "fixed_interest" | "min_amount" | "max_amount" | "savings_multiple"> & {
@@ -115,7 +117,9 @@ export type LoanStatus = "active" | "arrears" | "paid" | "bad_debt" | "voided";
 
 export interface LoanSummary {
   id: number;
-  member: NamedRef;
+  /** The borrower: a member, or a debtor. */
+  member: NamedRef | null;
+  debtor: NamedRef | null;
   loan_type: NamedRef | null;
   amount: Money;
   disbursed_on: string;
@@ -186,7 +190,8 @@ export interface StatementLine {
 
 export interface LoanDetail {
   id: number;
-  member: NamedRef;
+  member: NamedRef | null;
+  debtor: NamedRef | null;
   loan_type: NamedRef | null;
   account: NamedRef | null;
   amount: Money;
@@ -223,7 +228,8 @@ export interface GuarantorInput {
 }
 
 export interface NewLoanInput {
-  member_id: number;
+  member_id?: number;
+  debtor_id?: number;
   loan_type_id?: number;
   account_id: number;
   amount: string;
@@ -254,6 +260,8 @@ export interface Schedule {
 export interface PreviewInput {
   loan_type_id?: number;
   member_id?: number;
+  debtor_id?: number;
+  for_debtors?: boolean;
   amount: string;
   installments?: number;
   disbursed_on?: string;
@@ -333,10 +341,13 @@ function useInvalidate(groupId: number) {
   return () => qc.invalidateQueries({ queryKey: ["group", groupId] });
 }
 
-export function useLoanTypes(groupId: number, includeHidden = false) {
+export function useLoanTypes(groupId: number, includeHidden = false, forDebtors = false) {
   return useQuery({
-    queryKey: ["group", groupId, "loan-types", includeHidden],
-    queryFn: () => api.get<{ loan_types: LoanType[] }>(`${g(groupId)}/loan-types${query({ include_hidden: includeHidden })}`).then((r) => r.loan_types),
+    queryKey: ["group", groupId, "loan-types", includeHidden, forDebtors],
+    queryFn: () =>
+      api
+        .get<{ loan_types: LoanType[] }>(`${g(groupId)}/loan-types${query({ include_hidden: includeHidden, for: forDebtors ? "debtors" : "" })}`)
+        .then((r) => r.loan_types),
   });
 }
 
@@ -360,6 +371,9 @@ export function useDeleteLoanType(groupId: number) {
 export interface LoanParams {
   status?: "" | "open" | "paid" | "voided";
   member_id?: number;
+  debtor_id?: number;
+  /** "debtors" lists loans to debtors instead of members (officials). */
+  borrower?: "debtors";
   loan_type_id?: number;
   page?: number;
 }
@@ -464,6 +478,11 @@ export function useApplicationAction(groupId: number, id: number) {
 }
 
 // ---- wording ----
+
+/** borrowerName is who a loan went to. */
+export function borrowerName(l: { member: NamedRef | null; debtor: NamedRef | null }): string {
+  return l.member?.name ?? l.debtor?.name ?? "";
+}
 
 export function interestText(t: { interest_type: InterestType; interest_rate: number | string; rate_per: RatePer; fixed_interest?: string }): string {
   if (t.interest_type === "fixed_amount") return "Fixed interest";
