@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Banknote, FileSignature, Percent, ArrowLeftRight, ArrowUpFromLine, BookOpen, ClipboardCheck, FileText, Gavel, HandCoins, Landmark, LayoutDashboard, ShieldCheck, Tags, Users } from "lucide-react";
+import { ArrowDownToLine, Banknote, Building2, Contact, FileSignature, Percent, ArrowLeftRight, ArrowUpFromLine, BookOpen, ClipboardCheck, FileText, Gavel, HandCoins, Landmark, LayoutDashboard, ShieldCheck, Tags, Users } from "lucide-react";
 import type { Group } from "../api/types";
 import type { Section } from "./AppShell";
 import type { NavItem } from "./Shell";
@@ -30,6 +30,8 @@ export const groupMenus: MenuDef[] = [
   { id: "group.loans", section: "group", path: "loans", label: "Loans", icon: Banknote },
   { id: "group.loan_applications", section: "group", path: "loan-applications", label: "Loan applications", icon: FileSignature },
   { id: "group.loan_types", section: "group", path: "loan-types", label: "Loan types", icon: Percent },
+  { id: "group.bank_loans", section: "group", path: "bank-loans", label: "Bank loans", icon: Building2 },
+  { id: "group.debtors", section: "group", path: "debtors", label: "Debtors", icon: Contact },
   { id: "group.deposits", section: "group", path: "deposits", label: "Deposits", icon: ArrowDownToLine },
   { id: "group.withdrawals", section: "group", path: "withdrawals", label: "Withdrawals", icon: ArrowUpFromLine },
   { id: "group.withdrawal_requests", section: "group", path: "withdrawal-requests", label: "Withdrawal requests", icon: ClipboardCheck },
@@ -44,6 +46,7 @@ export const groupMenus: MenuDef[] = [
   { id: "member.fines", section: "member", path: "fines", label: "My fines", icon: Gavel, needsMembership: true },
   { id: "member.loans", section: "member", path: "loans", label: "My loans", icon: Banknote, needsMembership: true },
   { id: "member.loan_applications", section: "member", path: "loan-applications", label: "Loan applications", icon: FileSignature, needsMembership: true },
+  { id: "member.bank_loans", section: "member", path: "bank-loans", label: "Bank loans", icon: Building2 },
   { id: "member.withdrawal_requests", section: "member", path: "withdrawal-requests", label: "Approvals", icon: ClipboardCheck, needsSignatory: true },
 ];
 

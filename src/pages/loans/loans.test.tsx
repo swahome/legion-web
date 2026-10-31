@@ -17,7 +17,7 @@ const emergency: LoanType = {
   fixed_interest: "0.00", fixed_interest_rate: 0, frequency: "monthly", fixed_term: null, min_term: 1, max_term: 6, grace_periods: 1,
   amount_basis: "range", min_amount: "1000.00", max_amount: "50000.00", savings_multiple: null, guarantors: "always", min_guarantors: 1,
   max_guarantors: 3, late_fine: { kind: "fixed", amount: "100.00", frequency: "once", scope: "installment" }, balance_fine: null,
-  processing_fee: { kind: "percentage", rate: 2, on: "amount" }, fine_deferment: false, needs_approval: true, is_hidden: false,
+  processing_fee: { kind: "percentage", rate: 2, on: "amount" }, fine_deferment: false, needs_approval: true, is_hidden: false, for_debtors: false,
 };
 
 const schedule = {

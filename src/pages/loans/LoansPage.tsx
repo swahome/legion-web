@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Plus, Trash2 } from "lucide-react";
 import { useGroup, useMembers } from "../../api/hooks";
 import {
+  borrowerName,
   interestText,
   interestTypeLabels,
   loanStatusLabels,
@@ -22,6 +23,7 @@ import {
   type RatePer,
 } from "../../api/loans";
 import { methodLabels, useAccounts, type PaymentMethod } from "../../api/money";
+import type { NamedRef } from "../../api/money";
 import type { Member } from "../../api/types";
 import { useGroupBase, useGroupId, useManaging } from "../../components/AppShell";
 import { Badge, Dialog, EmptyState, ErrorState, Field, InlineError, PageHeader, Spinner, Stat } from "../../components/ui";
@@ -118,7 +120,7 @@ export function LoansPage() {
                       {formatDate(l.disbursed_on)}
                     </Link>
                   </td>
-                  {managing && <td className="px-4 py-3">{l.member.name}</td>}
+                  {managing && <td className="px-4 py-3">{borrowerName(l)}</td>}
                   <td className="px-4 py-3">
                     <span className="font-medium">{l.loan_type?.name ?? "Custom loan"}</span>
                     <span className="block text-xs text-slate-500">
@@ -144,8 +146,9 @@ export function LoansPage() {
   );
 }
 
-function RecordLoanDialog({ groupId, currency, onClose }: { groupId: number; currency: string; onClose: () => void }) {
-  const types = useLoanTypes(groupId, true);
+/** RecordLoanDialog records a loan paid out to a member, or to a debtor when one is given. */
+export function RecordLoanDialog({ groupId, currency, debtor, onClose }: { groupId: number; currency: string; debtor?: NamedRef; onClose: () => void }) {
+  const types = useLoanTypes(groupId, true, !!debtor);
   const members = useMembers(groupId, "active");
   const accounts = useAccounts(groupId);
   const record = useRecordLoan(groupId);
@@ -172,17 +175,15 @@ function RecordLoanDialog({ groupId, currency, onClose }: { groupId: number; cur
   const terms: Partial<PreviewInput> = custom
     ? { interest_type: form.interest_type, interest_rate: Number(form.interest_rate) || 0, rate_per: form.rate_per, frequency: form.frequency }
     : { loan_type_id: type?.id };
-  const ready = !!form.member && (custom || !!type) && isAmount(form.amount) && installments > 0;
-  const preview = usePreviewLoan(
-    groupId,
-    ready ? { ...terms, member_id: Number(form.member), amount: form.amount, installments, disbursed_on: form.date } : null,
-  );
+  const borrower = debtor ? { debtor_id: debtor.id } : { member_id: Number(form.member) };
+  const ready = (!!debtor || !!form.member) && (custom || !!type) && isAmount(form.amount) && installments > 0;
+  const preview = usePreviewLoan(groupId, ready ? { ...terms, ...borrower, amount: form.amount, installments, disbursed_on: form.date } : null);
   const openAccounts = (accounts.data?.accounts ?? []).filter((a) => !a.is_closed);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     const input: NewLoanInput = {
-      member_id: Number(form.member),
+      ...borrower,
       account_id: Number(form.account),
       amount: form.amount,
       disbursed_on: form.date,
@@ -199,24 +200,26 @@ function RecordLoanDialog({ groupId, currency, onClose }: { groupId: number; cur
   }
 
   return (
-    <Dialog open onClose={onClose} title="Record a loan">
+    <Dialog open onClose={onClose} title={debtor ? `Lend to ${debtor.name}` : "Record a loan"}>
       <form onSubmit={submit} className="space-y-4">
         <p className="text-sm text-slate-500">
-          For a loan already paid out. It records the money leaving the account, the repayment schedule and any processing fee. Members can also apply under Loan
-          applications.
+          For a loan already paid out. It records the money leaving the account, the repayment schedule and any processing fee.
+          {!debtor && " Members can also apply under Loan applications."}
         </p>
         <InlineError error={record.error} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Member" htmlFor="ln-member">
-            <select id="ln-member" className="input" value={form.member} onChange={(e) => set("member")(e.target.value)} required>
-              <option value="">Choose a member…</option>
-              {members.data?.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {fullName(m)}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {!debtor && (
+            <Field label="Member" htmlFor="ln-member">
+              <select id="ln-member" className="input" value={form.member} onChange={(e) => set("member")(e.target.value)} required>
+                <option value="">Choose a member…</option>
+                {members.data?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {fullName(m)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Loan type" htmlFor="ln-type">
             <select id="ln-type" className="input" value={form.type} onChange={(e) => set("type")(e.target.value)} required>
               <option value="">Choose a loan type…</option>
@@ -305,7 +308,7 @@ function RecordLoanDialog({ groupId, currency, onClose }: { groupId: number; cur
             </select>
           </Field>
         </div>
-        <GuarantorRows members={members.data ?? []} exclude={Number(form.member)} rows={guarantors} onChange={setGuarantors} currency={currency} />
+        <GuarantorRows members={members.data ?? []} exclude={debtor ? 0 : Number(form.member)} rows={guarantors} onChange={setGuarantors} currency={currency} />
         <Field label="Note (optional)" htmlFor="ln-desc">
           <input id="ln-desc" className="input" value={form.description} onChange={(e) => set("description")(e.target.value)} />
         </Field>

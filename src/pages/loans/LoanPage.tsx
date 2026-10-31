@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, HandCoins } from "lucide-react";
 import { useGroup } from "../../api/hooks";
 import {
+  borrowerName,
   feeText,
   fineText,
   interestText,
@@ -53,13 +54,16 @@ export function LoanPage() {
 
   return (
     <>
-      <Link to={`${base}/loans`} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
-        <ArrowLeft className="size-4" aria-hidden /> Loans
+      <Link
+        to={l.debtor ? `${base}/debtors/${l.debtor.id}` : `${base}/loans`}
+        className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
+      >
+        <ArrowLeft className="size-4" aria-hidden /> {l.debtor ? l.debtor.name : "Loans"}
       </Link>
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-2">
-            {l.loan_type?.name ?? "Custom loan"} for {l.member.name}
+            {l.loan_type?.name ?? "Custom loan"} for {borrowerName(l)}
             <Badge tone={loanStatusTones[l.status]}>{loanStatusLabels[l.status]}</Badge>
           </span>
         }
@@ -192,7 +196,7 @@ export function LoanPage() {
                 : ({ action: "waive_fine", id: confirm.c.id } as const);
           if (await act.mutateAsync(body).then(() => true).catch(() => false)) {
             setConfirm(null);
-            if (confirm.kind === "void") navigate(`${base}/loans`);
+            if (confirm.kind === "void") navigate(l.debtor ? `${base}/debtors/${l.debtor.id}` : `${base}/loans`);
           }
         }}
       >
@@ -202,7 +206,7 @@ export function LoanPage() {
             The {formatMoney(confirm.r.amount, currency)} repayment of {formatDate(confirm.r.paid_on)} and its deposit are voided, and the loan owes it again.
           </p>
         )}
-        {confirm?.kind === "fine" && <p>{l.member.name} will no longer owe this {formatMoney(confirm.c.amount, currency)} fine.</p>}
+        {confirm?.kind === "fine" && <p>{borrowerName(l)} will no longer owe this {formatMoney(confirm.c.amount, currency)} fine.</p>}
       </Confirm>
     </>
   );
@@ -318,7 +322,7 @@ function RepaymentDialog({ groupId, l, currency, onClose }: { groupId: number; l
   }
 
   return (
-    <Dialog open onClose={onClose} title={`Repayment from ${l.member.name}`}>
+    <Dialog open onClose={onClose} title={`Repayment from ${borrowerName(l)}`}>
       <form onSubmit={submit} className="space-y-4">
         <p className="text-sm text-slate-500">
           {formatMoney(l.totals.balance, currency)} is owed. A repayment settles the oldest installment or fine first.

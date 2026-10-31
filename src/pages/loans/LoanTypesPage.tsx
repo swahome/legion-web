@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Link } from "react-router";
+import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { useGroup } from "../../api/hooks";
 import {
   feeText,
@@ -22,18 +23,22 @@ import {
   type ProcessingFee,
   type RatePer,
 } from "../../api/loans";
-import { useGroupId, useManaging } from "../../components/AppShell";
+import { useGroupBase, useGroupId, useManaging } from "../../components/AppShell";
 import { Badge, Dialog, EmptyState, ErrorState, Field, InlineError, PageHeader, Spinner, Toggle } from "../../components/ui";
 import { formatMoney } from "../../lib/format";
 import { Confirm } from "../admin/widgets";
 import { OfficialsOnly } from "../money/shared";
 
-/** LoanTypesPage is where officials set the group's loan products. */
-export function LoanTypesPage() {
+/**
+ * LoanTypesPage is where officials set the group's loan products: for
+ * members, or (forDebtors) for debtors, people outside the group.
+ */
+export function LoanTypesPage({ forDebtors = false }: { forDebtors?: boolean }) {
   const groupId = useGroupId();
+  const base = useGroupBase();
   const group = useGroup(groupId);
   const managing = useManaging(group.data);
-  const types = useLoanTypes(groupId, true);
+  const types = useLoanTypes(groupId, true, forDebtors);
   const [editing, setEditing] = useState<LoanType | "new" | null>(null);
 
   if (!group.data) return <Spinner />;
@@ -42,9 +47,18 @@ export function LoanTypesPage() {
 
   return (
     <>
+      {forDebtors && (
+        <Link to={`${base}/debtors`} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
+          <ArrowLeft className="size-4" aria-hidden /> Debtors
+        </Link>
+      )}
       <PageHeader
-        title="Loan types"
-        subtitle="The loans members can apply for: interest, term, limits, guarantors, fines and fees. A loan keeps the terms it was given."
+        title={forDebtors ? "Debtor loan types" : "Loan types"}
+        subtitle={
+          forDebtors
+            ? "The loans the group makes to debtors: interest, term, limits, fines and fees. A loan keeps the terms it was given."
+            : "The loans members can apply for: interest, term, limits, guarantors, fines and fees. A loan keeps the terms it was given."
+        }
         actions={
           <button className="btn-primary" onClick={() => setEditing("new")}>
             <Plus className="size-4" aria-hidden /> New loan type
@@ -57,7 +71,7 @@ export function LoanTypesPage() {
         <ErrorState error={types.error} onRetry={() => types.refetch()} />
       ) : types.data.length === 0 ? (
         <div className="card">
-          <EmptyState title="No loan types yet">Add one so members can apply for loans.</EmptyState>
+          <EmptyState title="No loan types yet">{forDebtors ? "Add one to lend to debtors on set terms." : "Add one so members can apply for loans."}</EmptyState>
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -96,14 +110,20 @@ export function LoanTypesPage() {
                 <dd>{fineText(t.balance_fine, currency)}</dd>
                 <dt className="text-slate-500">Processing fee</dt>
                 <dd>{feeText(t.processing_fee, currency)}</dd>
-                <dt className="text-slate-500">Approval</dt>
-                <dd>{t.needs_approval ? "Signatories approve applications" : "Applications go straight to an official"}</dd>
+                {!forDebtors && (
+                  <>
+                    <dt className="text-slate-500">Approval</dt>
+                    <dd>{t.needs_approval ? "Signatories approve applications" : "Applications go straight to an official"}</dd>
+                  </>
+                )}
               </dl>
             </article>
           ))}
         </div>
       )}
-      {editing && <LoanTypeDialog groupId={groupId} currency={currency} type={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <LoanTypeDialog groupId={groupId} currency={currency} type={editing === "new" ? null : editing} forDebtors={forDebtors} onClose={() => setEditing(null)} />
+      )}
     </>
   );
 }
@@ -134,13 +154,26 @@ const blank: LoanTypeInput = {
   fine_deferment: false,
   needs_approval: true,
   is_hidden: false,
+  for_debtors: false,
 };
 
-function LoanTypeDialog({ groupId, currency, type, onClose }: { groupId: number; currency: string; type: LoanType | null; onClose: () => void }) {
+function LoanTypeDialog({
+  groupId,
+  currency,
+  type,
+  forDebtors,
+  onClose,
+}: {
+  groupId: number;
+  currency: string;
+  type: LoanType | null;
+  forDebtors: boolean;
+  onClose: () => void;
+}) {
   const save = useSaveLoanType(groupId, type?.id);
   const remove = useDeleteLoanType(groupId);
   const [deleting, setDeleting] = useState(false);
-  const [t, setT] = useState<LoanTypeInput>(() => (type ? { ...type } : blank));
+  const [t, setT] = useState<LoanTypeInput>(() => (type ? { ...type } : { ...blank, for_debtors: forDebtors }));
   const [fixedTerm, setFixedTerm] = useState(type ? type.fixed_term != null : false);
   const set = <K extends keyof LoanTypeInput>(k: K) => (v: LoanTypeInput[K]) => setT((x) => ({ ...x, [k]: v }));
   const num = (v: string) => (v === "" ? null : Number(v));
@@ -245,7 +278,7 @@ function LoanTypeDialog({ groupId, currency, type, onClose }: { groupId: number;
           <div className="grid gap-3 sm:grid-cols-3">
             <select className="input" aria-label="Amount limit" value={t.amount_basis} onChange={(e) => set("amount_basis")(e.target.value as "range" | "savings")}>
               <option value="range">Range</option>
-              <option value="savings">× savings</option>
+              {!forDebtors && <option value="savings">× savings</option>}
             </select>
             {t.amount_basis === "range" ? (
               <>
@@ -280,9 +313,15 @@ function LoanTypeDialog({ groupId, currency, type, onClose }: { groupId: number;
         <FeeEditor currency={currency} value={t.processing_fee} onChange={set("processing_fee")} />
 
         <div className="space-y-3">
-          <Toggle id="lt-approval" label="Signatories approve applications" checked={t.needs_approval} onChange={set("needs_approval")} />
+          {!forDebtors && <Toggle id="lt-approval" label="Signatories approve applications" checked={t.needs_approval} onChange={set("needs_approval")} />}
           <Toggle id="lt-defer" label="Repayments settle installments before fines" checked={t.fine_deferment} onChange={set("fine_deferment")} />
-          <Toggle id="lt-hidden" label="Hidden from members" hint="Officials can still record loans of this type." checked={t.is_hidden} onChange={set("is_hidden")} />
+          <Toggle
+            id="lt-hidden"
+            label={forDebtors ? "Hidden" : "Hidden from members"}
+            hint={forDebtors ? "Not offered when lending, until shown again." : "Officials can still record loans of this type."}
+            checked={t.is_hidden}
+            onChange={set("is_hidden")}
+          />
         </div>
 
         <div className="flex justify-between gap-2 pt-2">
