@@ -155,7 +155,24 @@ export interface ContributionInput {
     sms_notifications?: boolean;
     email_notifications?: boolean;
     fines_enabled?: boolean;
+    invoice_days_before?: number | null;
+    rule?: Record<string, string>;
   };
+  fine_rules?: FineRuleInput[];
+}
+
+/** FineRuleInput is a late-payment fine setting; see api/fines.ts for the codes. */
+export interface FineRuleInput {
+  id?: number;
+  kind: "fixed" | "percentage";
+  fixed_amount?: string;
+  percentage_rate?: string;
+  percentage_of?: string;
+  chargeable_on: string;
+  mode: string;
+  frequency: string;
+  fine_limit: number;
+  is_active: boolean;
 }
 
 export function useSaveContribution(groupId: number, contributionId?: number) {

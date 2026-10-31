@@ -15,10 +15,12 @@ import { AccountsPage } from "./pages/money/AccountsPage";
 import { CashBookPage } from "./pages/money/CashBookPage";
 import { CategoriesPage } from "./pages/money/CategoriesPage";
 import { DepositsPage } from "./pages/money/DepositsPage";
+import { FinesPage } from "./pages/money/FinesPage";
 import { TransfersPage } from "./pages/money/TransfersPage";
 import { WithdrawalRequestsPage } from "./pages/money/WithdrawalRequestsPage";
 import { WithdrawalsPage } from "./pages/money/WithdrawalsPage";
 import { AdminAuditPage } from "./pages/admin/AdminAuditPage";
+import { AdminJobsPage } from "./pages/admin/AdminJobsPage";
 import { AdminBankPage, AdminBanksPage } from "./pages/admin/AdminBanksPage";
 import { AdminGroupsPage } from "./pages/admin/AdminGroupsPage";
 import { AdminOverviewPage } from "./pages/admin/AdminOverviewPage";
@@ -46,6 +48,7 @@ export function App() {
         <Route path="places" element={<AdminPlacesPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
+        <Route path="jobs" element={<AdminJobsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/group/:groupId" element={<RequireAuth><AppShell section="group" /></RequireAuth>}>
@@ -63,6 +66,7 @@ export function App() {
         <Route path="transfers" element={<TransfersPage />} />
         <Route path="withdrawal-requests" element={<WithdrawalRequestsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
+        <Route path="fines" element={<FinesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/member/:groupId" element={<RequireAuth><AppShell section="member" /></RequireAuth>}>
@@ -73,6 +77,7 @@ export function App() {
         <Route path="contributions" element={<ContributionsPage />} />
         <Route path="contributions/:contributionId" element={<ContributionPage />} />
         <Route path="withdrawal-requests" element={<WithdrawalRequestsPage />} />
+        <Route path="fines" element={<FinesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       {/* Links from before the sections split. AppShell moves members on to /member. */}
