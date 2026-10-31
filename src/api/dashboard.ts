@@ -41,6 +41,7 @@ export interface Dashboard {
   members_behind: number;
   recent?: DashboardMovement[];
   pending_withdrawal_requests?: number;
+  loans?: { count: number; lent: Money; repaid: Money; balance: Money };
 }
 
 export function useDashboard(groupId: number) {

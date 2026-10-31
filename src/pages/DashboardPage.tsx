@@ -151,7 +151,7 @@ function GroupDashboard() {
           <ArrowRight className="size-4" aria-hidden />
         </Link>
       )}
-      <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className={`grid gap-4 sm:grid-cols-2 ${d.loans ? "xl:grid-cols-3 2xl:grid-cols-5" : "2xl:grid-cols-4"}`}>
         <LinkStat to={`${base}/accounts`} label="Cash at bank" value={formatMoney(d.cash.at_bank, cur)} hint={bankAccounts ? `In ${plural(bankAccounts, "bank and sacco account")}` : "Bank and sacco accounts"} />
         <LinkStat
           to={`${base}/accounts`}
@@ -171,6 +171,14 @@ function GroupDashboard() {
           value={formatMoney(d.owed.fines.owed, cur)}
           hint={d.owed.fines.members ? `Owed by ${plural(d.owed.fines.members, "member")}` : "No fines owed"}
         />
+        {d.loans && (
+          <LinkStat
+            to={`${base}/loans`}
+            label="Loans owed"
+            value={formatMoney(d.loans.balance, cur)}
+            hint={d.loans.count ? `${plural(d.loans.count, "loan")} · ${formatMoney(d.loans.repaid, cur)} repaid` : "No loans yet"}
+          />
+        )}
       </div>
 
       <section className="card mt-6 p-5">

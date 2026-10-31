@@ -11,6 +11,10 @@ import { GroupPickerPage } from "./pages/GroupPickerPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MemberPage, MyStatementPage } from "./pages/MemberPage";
 import { MembersPage } from "./pages/MembersPage";
+import { LoanApplicationsPage } from "./pages/loans/LoanApplicationsPage";
+import { LoanPage } from "./pages/loans/LoanPage";
+import { LoansPage } from "./pages/loans/LoansPage";
+import { LoanTypesPage } from "./pages/loans/LoanTypesPage";
 import { AccountsPage } from "./pages/money/AccountsPage";
 import { CashBookPage } from "./pages/money/CashBookPage";
 import { CategoriesPage } from "./pages/money/CategoriesPage";
@@ -67,6 +71,10 @@ export function App() {
         <Route path="withdrawal-requests" element={<WithdrawalRequestsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="fines" element={<FinesPage />} />
+        <Route path="loans" element={<LoansPage />} />
+        <Route path="loans/:loanId" element={<LoanPage />} />
+        <Route path="loan-applications" element={<LoanApplicationsPage />} />
+        <Route path="loan-types" element={<LoanTypesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/member/:groupId" element={<RequireAuth><AppShell section="member" /></RequireAuth>}>
@@ -78,6 +86,9 @@ export function App() {
         <Route path="contributions/:contributionId" element={<ContributionPage />} />
         <Route path="withdrawal-requests" element={<WithdrawalRequestsPage />} />
         <Route path="fines" element={<FinesPage />} />
+        <Route path="loans" element={<LoansPage />} />
+        <Route path="loans/:loanId" element={<LoanPage />} />
+        <Route path="loan-applications" element={<LoanApplicationsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       {/* Links from before the sections split. AppShell moves members on to /member. */}
