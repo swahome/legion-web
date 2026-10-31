@@ -1,4 +1,4 @@
-import { FileText, HandCoins, LayoutDashboard, ShieldCheck, Users } from "lucide-react";
+import { ArrowDownToLine, BookOpen, FileText, HandCoins, Landmark, LayoutDashboard, ShieldCheck, Tags, Users } from "lucide-react";
 import type { Group } from "../api/types";
 import type { Section } from "./AppShell";
 import type { NavItem } from "./Shell";
@@ -24,6 +24,10 @@ export const groupMenus: MenuDef[] = [
   { id: "group.contributions", section: "group", path: "contributions", label: "Contributions", icon: HandCoins },
   { id: "group.members", section: "group", path: "members", label: "Members", icon: Users },
   { id: "group.arrears", section: "group", path: "arrears", label: "Arrears", icon: ShieldCheck },
+  { id: "group.deposits", section: "group", path: "deposits", label: "Deposits", icon: ArrowDownToLine },
+  { id: "group.accounts", section: "group", path: "accounts", label: "Accounts", icon: Landmark },
+  { id: "group.cash_book", section: "group", path: "cash-book", label: "Cash book", icon: BookOpen },
+  { id: "group.categories", section: "group", path: "categories", label: "Categories", icon: Tags },
   { id: "member.overview", section: "member", path: "", label: "Overview", icon: LayoutDashboard, locked: true },
   { id: "member.statement", section: "member", path: "statement", label: "My statement", icon: FileText, needsMembership: true },
   { id: "member.contributions", section: "member", path: "contributions", label: "Contributions", icon: HandCoins },

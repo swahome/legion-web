@@ -11,6 +11,10 @@ import { GroupPickerPage } from "./pages/GroupPickerPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MemberPage, MyStatementPage } from "./pages/MemberPage";
 import { MembersPage } from "./pages/MembersPage";
+import { AccountsPage } from "./pages/money/AccountsPage";
+import { CashBookPage } from "./pages/money/CashBookPage";
+import { CategoriesPage } from "./pages/money/CategoriesPage";
+import { DepositsPage } from "./pages/money/DepositsPage";
 import { AdminAuditPage } from "./pages/admin/AdminAuditPage";
 import { AdminBankPage, AdminBanksPage } from "./pages/admin/AdminBanksPage";
 import { AdminGroupsPage } from "./pages/admin/AdminGroupsPage";
@@ -49,6 +53,10 @@ export function App() {
         <Route path="contributions" element={<ContributionsPage />} />
         <Route path="contributions/:contributionId" element={<ContributionPage />} />
         <Route path="arrears" element={<ArrearsPage />} />
+        <Route path="accounts" element={<AccountsPage />} />
+        <Route path="cash-book" element={<CashBookPage />} />
+        <Route path="deposits" element={<DepositsPage />} />
+        <Route path="categories" element={<CategoriesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/member/:groupId" element={<RequireAuth><AppShell section="member" /></RequireAuth>}>
