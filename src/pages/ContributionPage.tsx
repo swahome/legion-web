@@ -6,6 +6,7 @@ import type { Contribution, ContributionCategory, ContributionKind, Frequency } 
 import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
 import { Badge, ErrorState, Field, InlineError, PageHeader, Spinner, Toggle } from "../components/ui";
 import { categoryLabels, formatDate, formatMoney, frequencyLabels, fullName, kindLabels } from "../lib/format";
+import { DayPicker, FineRulesEditor, describeFineRule, describeRule, draftReady, fromDraft, toDraft, type Rule } from "./ContributionRules";
 
 /** ContributionPage shows a contribution; officials edit it in place. "new" creates one. */
 export function ContributionPage() {
@@ -34,7 +35,7 @@ export function ContributionPage() {
       <>
         {back}
         <PageHeader title={isNew ? "New contribution" : `Edit ${c.data?.name}`} />
-        <ContributionForm groupId={groupId} existing={isNew ? undefined : c.data} onDone={() => setEditing(false)} />
+        <ContributionForm groupId={groupId} currency={group.data.currency} existing={isNew ? undefined : c.data} onDone={() => setEditing(false)} />
       </>
     );
   }
@@ -68,8 +69,10 @@ function ContributionDetails({ c, currency, groupId }: { c: Contribution; curren
   ];
   if (s) {
     if (s.frequency) rows.push(["Frequency", frequencyLabels[s.frequency]]);
-    rows.push(["Contribution date", formatDate(s.contribution_date)]);
-    rows.push(["Invoice date", formatDate(s.invoice_date)]);
+    const day = describeRule(s.frequency, s.rule);
+    if (day) rows.push(["Falls on", day]);
+    rows.push(["Next contribution date", formatDate(s.contribution_date)]);
+    rows.push(["Next invoice date", formatDate(s.invoice_date)]);
     rows.push(["Invoicing", s.invoicing_active ? "On" : "Off"]);
     rows.push(["Fines", s.fines_enabled ? "Enabled" : "Off"]);
     rows.push(["Notifications", [s.sms_notifications && "SMS", s.email_notifications && "Email"].filter(Boolean).join(", ") || "None"]);
@@ -91,8 +94,7 @@ function ContributionDetails({ c, currency, groupId }: { c: Contribution; curren
           <ul className="space-y-2 text-sm">
             {c.fine_rules.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{f.kind === "fixed" ? formatMoney(f.fixed_amount, currency) : `${f.percentage_rate}%`}</span>
-                <span className="text-slate-500">{describeChargeable(f.chargeable_on)}</span>
+                <span>{describeFineRule(f, currency)}</span>
                 {!f.is_active && <Badge tone="warn">Off</Badge>}
               </li>
             ))}
@@ -119,17 +121,9 @@ function selectedLabel(n: number): string {
   return `${n} selected member${n === 1 ? "" : "s"}`;
 }
 
-function describeChargeable(v: string): string {
-  if (v === "last_day_of_the_month") return "charged on the last day of the month";
-  if (v === "first_day_of_the_month") return "charged on the first day of the month";
-  const n = Number(v);
-  if (n > 0) return `charged ${n} day${n === 1 ? "" : "s"} after the contribution date`;
-  return v ? `charged: ${v}` : "";
-}
-
 const frequencies = Object.keys(frequencyLabels) as Frequency[];
 
-function ContributionForm({ groupId, existing, onDone }: { groupId: number; existing?: Contribution; onDone: () => void }) {
+function ContributionForm({ groupId, currency, existing, onDone }: { groupId: number; currency: string; existing?: Contribution; onDone: () => void }) {
   const base = useGroupBase();
   const save = useSaveContribution(groupId, existing?.id);
   const members = useMembers(groupId, "active");
@@ -150,6 +144,9 @@ function ContributionForm({ groupId, existing, onDone }: { groupId: number; exis
     fines_enabled: existing?.schedule?.fines_enabled ?? false,
     sms: existing?.schedule?.sms_notifications ?? false,
     email: existing?.schedule?.email_notifications ?? false,
+    days_before: String(existing?.schedule?.invoice_days_before ?? 0),
+    rule: { ...(existing?.schedule?.rule ?? {}) } as Rule,
+    fines: (existing?.fine_rules ?? []).map(toDraft),
   });
   const upd = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
   const scheduled = f.kind !== "non_scheduled";
@@ -170,13 +167,17 @@ function ContributionForm({ groupId, existing, onDone }: { groupId: number; exis
       input.schedule = {
         frequency: f.kind === "regular" ? f.frequency : null,
         contribution_date: f.contribution_date,
-        invoice_date: f.invoice_date || null,
+        // The server works the invoice date out from days-before.
+        invoice_date: null,
+        invoice_days_before: Number(f.days_before) || 0,
+        ...(f.kind === "regular" && { rule: f.rule }),
         invoicing_active: f.invoicing_active,
         fines_enabled: f.fines_enabled,
         sms_notifications: f.sms,
         email_notifications: f.email,
       };
     }
+    if (f.kind === "regular") input.fine_rules = f.fines.map(fromDraft);
     const saved = await save.mutateAsync(input).catch(() => null);
     if (!saved) return;
     if (existing) onDone();
@@ -232,16 +233,31 @@ function ContributionForm({ groupId, existing, onDone }: { groupId: number; exis
             <Field label={f.kind === "regular" ? "Next contribution date" : "Contribution date"} htmlFor="cf-cdate">
               <input id="cf-cdate" type="date" className="input" value={f.contribution_date} onChange={(e) => upd("contribution_date", e.target.value)} required={f.kind === "regular"} />
             </Field>
-            <Field label="Invoice date" htmlFor="cf-idate">
-              <input id="cf-idate" type="date" className="input" value={f.invoice_date} max={f.contribution_date || undefined} onChange={(e) => upd("invoice_date", e.target.value)} />
+            <Field label="Invoice members" htmlFor="cf-days">
+              <select id="cf-days" className="input" value={f.days_before} onChange={(e) => upd("days_before", e.target.value)}>
+                <option value="0">On the contribution date</option>
+                {Array.from({ length: 14 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    {n === 7 ? "1 week" : n === 14 ? "2 weeks" : `${n} day${n === 1 ? "" : "s"}`} before
+                  </option>
+                ))}
+              </select>
             </Field>
           </div>
+          {f.kind === "regular" && <DayPicker frequency={f.frequency} rule={f.rule} onChange={(r) => upd("rule", r)} />}
           <div className="grid gap-3 sm:grid-cols-2">
             <Toggle id="cf-invoicing" label="Send invoices" checked={f.invoicing_active} onChange={(v) => upd("invoicing_active", v)} />
             <Toggle id="cf-fines" label="Charge late fines" checked={f.fines_enabled} onChange={(v) => upd("fines_enabled", v)} />
             <Toggle id="cf-sms" label="SMS reminders" checked={f.sms} onChange={(v) => upd("sms", v)} />
             <Toggle id="cf-email" label="Email reminders" checked={f.email} onChange={(v) => upd("email", v)} />
           </div>
+        </fieldset>
+      )}
+
+      {f.kind === "regular" && f.fines_enabled && (
+        <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+          <legend className="px-1 text-sm font-semibold">Late payment fines</legend>
+          <FineRulesEditor rules={f.fines} onChange={(r) => upd("fines", r)} currency={currency} />
         </fieldset>
       )}
 
@@ -276,7 +292,7 @@ function ContributionForm({ groupId, existing, onDone }: { groupId: number; exis
         <button type="button" className="btn-secondary" onClick={() => (existing ? onDone() : navigate(-1))}>
           Cancel
         </button>
-        <button type="submit" className="btn-primary" disabled={save.isPending || !f.name.trim() || !f.amount.trim()}>
+        <button type="submit" className="btn-primary" disabled={save.isPending || !f.name.trim() || !f.amount.trim() || !f.fines.every(draftReady)}>
           {save.isPending ? "Saving…" : existing ? "Save changes" : "Create contribution"}
         </button>
       </div>

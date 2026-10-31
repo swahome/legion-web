@@ -118,6 +118,7 @@ export interface Schedule {
   sms_notifications?: boolean;
   email_notifications?: boolean;
   fines_enabled: boolean | null;
+  /** Day picker in the legacy setting names, values as strings ("5"). */
   rule?: Record<string, string>;
 }
 
@@ -132,6 +133,9 @@ export interface FineRule {
   frequency: string | null;
   fine_limit: number | null;
   is_active: boolean;
+  sms_notifications?: boolean;
+  email_notifications?: boolean;
+  next_fine_date?: string | null;
 }
 
 export interface Contribution {
