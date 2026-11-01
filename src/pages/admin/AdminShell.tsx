@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router";
-import { ArrowLeftRight, Building2, CalendarClock, History, Landmark, LayoutDashboard, MapPin, Settings, UserCog } from "lucide-react";
+import { ArrowLeftRight, Building2, CalendarClock, History, Landmark, LayoutDashboard, MapPin, MessageSquareText, Settings, UserCog } from "lucide-react";
 import { useMe } from "../../api/hooks";
 import { Shell, type NavItem } from "../../components/Shell";
 import { Spinner } from "../../components/ui";
@@ -13,6 +13,7 @@ const nav: NavItem[] = [
   { to: "/admin/places", label: "Countries and counties", icon: MapPin },
   { to: "/admin/settings", label: "Settings and menus", icon: Settings },
   { to: "/admin/jobs", label: "Billing runs", icon: CalendarClock },
+  { to: "/admin/sms", label: "SMS", icon: MessageSquareText },
   { to: "/admin/audit", label: "Audit log", icon: History },
 ];
 

@@ -43,6 +43,23 @@ export class Client {
     return s;
   }
 
+  /** authenticate posts to a public auth route that answers with a session (sign-up, reset, invites). */
+  async authenticate(path: string, body: unknown): Promise<Session> {
+    const s = await this.raw<Session>("POST", path, body);
+    this.setSession(s);
+    return s;
+  }
+
+  /** publicPost posts to a public route without a token (forgot password). */
+  publicPost<T>(path: string, body: unknown): Promise<T> {
+    return this.raw<T>("POST", path, body);
+  }
+
+  /** publicGet reads a public route without a token (an invite). */
+  publicGet<T>(path: string): Promise<T> {
+    return this.raw<T>("GET", path);
+  }
+
   async logout(): Promise<void> {
     try {
       await this.raw("POST", "/v1/auth/logout");

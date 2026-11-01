@@ -9,6 +9,13 @@ import { ContributionsPage } from "./pages/ContributionsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { GroupPickerPage } from "./pages/GroupPickerPage";
 import { LoginPage } from "./pages/LoginPage";
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
+import { JoinPage } from "./pages/auth/JoinPage";
+import { SignupPage } from "./pages/auth/SignupPage";
+import { VerifyPhonePage } from "./pages/auth/VerifyPhonePage";
+import { CreateGroupPage } from "./pages/setup/CreateGroupPage";
+import { SetupPage } from "./pages/setup/SetupPage";
+import { AdminSMSPage } from "./pages/admin/AdminSMSPage";
 import { MemberPage, MyStatementPage } from "./pages/MemberPage";
 import { MembersPage } from "./pages/MembersPage";
 import { LoanApplicationsPage } from "./pages/loans/LoanApplicationsPage";
@@ -43,6 +50,11 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/join/:token" element={<JoinPage />} />
+      <Route path="/verify-phone" element={<RequireAuth><VerifyPhonePage /></RequireAuth>} />
+      <Route path="/groups/new" element={<RequireAuth><CreateGroupPage /></RequireAuth>} />
       <Route path="/" element={<RequireAuth><GroupPickerPage autoEnter /></RequireAuth>} />
       <Route path="/groups" element={<RequireAuth><GroupPickerPage /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth><AdminShell /></RequireAuth>}>
@@ -57,10 +69,12 @@ export function App() {
         <Route path="settings" element={<AdminSettingsPage />} />
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="jobs" element={<AdminJobsPage />} />
+        <Route path="sms" element={<AdminSMSPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/group/:groupId" element={<RequireAuth><AppShell section="group" /></RequireAuth>}>
         <Route index element={<DashboardPage />} />
+        <Route path="setup" element={<SetupPage />} />
         <Route path="statement" element={<MyStatementPage />} />
         <Route path="members" element={<MembersPage />} />
         <Route path="members/:memberId" element={<MemberPage />} />

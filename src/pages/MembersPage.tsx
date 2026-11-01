@@ -101,10 +101,14 @@ export function MembersPage() {
   );
 }
 
-function AddMemberDialog({ groupId, open, onClose }: { groupId: number; open: boolean; onClose: () => void }) {
+/** AddMemberDialog adds someone by phone. With onAdded it stays on the page instead of opening the member. */
+export function AddMemberDialog({ groupId, open, onClose, onAdded }: { groupId: number; open: boolean; onClose: () => void; onAdded?: () => void }) {
   const base = useGroupBase();
   const add = useAddMember(groupId);
   const roles = useRoles(groupId);
+  const group = useGroup(groupId);
+  const inSetup = group.data?.status === "setup";
+  const [invite, setInvite] = useState(true);
   const navigate = useNavigate();
   const [form, setForm] = useState({ first_name: "", last_name: "", phone: "", email: "", membership_number: "", role_id: "", is_official: false });
   const set = (k: keyof typeof form) => (v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
@@ -125,12 +129,14 @@ function AddMemberDialog({ groupId, open, onClose }: { groupId: number; open: bo
         membership_number: form.membership_number.trim() || undefined,
         role_id: form.role_id ? Number(form.role_id) : null,
         is_official: form.is_official,
+        send_invite: inSetup ? undefined : invite,
       })
       .catch(() => null);
     if (m) {
       setForm({ first_name: "", last_name: "", phone: "", email: "", membership_number: "", role_id: "", is_official: false });
       close();
-      navigate(`${base}/members/${m.id}`);
+      if (onAdded) onAdded();
+      else navigate(`${base}/members/${m.id}`);
     }
   }
 
@@ -168,6 +174,11 @@ function AddMemberDialog({ groupId, open, onClose }: { groupId: number; open: bo
           </Field>
         </div>
         <Toggle id="am-official" label="Group official" hint="Officials can manage members and contributions." checked={form.is_official} onChange={set("is_official")} />
+        {inSetup ? (
+          <p className="text-xs text-slate-500">They'll get an SMS invite when you finish setting up the group.</p>
+        ) : (
+          <Toggle id="am-invite" label="Text them an invite" hint="An SMS with a link to set their password, or to log in if they already use Legion." checked={invite} onChange={setInvite} />
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" className="btn-secondary" onClick={close}>
             Cancel

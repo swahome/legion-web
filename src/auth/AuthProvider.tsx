@@ -20,10 +20,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    let signedIn = false;
     const off = api.onSession((s) => {
       setUser(s?.user ?? null);
       setStatus(s ? "signed-in" : "signed-out");
-      if (!s) qc.clear();
+      // Drop the last user's data on sign-out. Not when the page opens
+      // signed out: that would cancel public queries already running, like
+      // an invite being opened.
+      if (!s && signedIn) qc.clear();
+      signedIn = !!s;
     });
     // Restore the session from the refresh cookie, if there is one.
     api.refresh().catch(() => setStatus("signed-out"));

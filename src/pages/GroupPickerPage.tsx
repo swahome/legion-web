@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, LogOut, Plus, ShieldCheck } from "lucide-react";
 import { useMe } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { lastGroup, sectionFor } from "../components/AppShell";
@@ -72,10 +72,15 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
         </Link>
       )}
 
-      <h2 className="mb-3 text-sm font-semibold text-slate-500 uppercase">Your groups</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-500 uppercase">Your groups</h2>
+        <Link to="/groups/new" className="btn-secondary">
+          <Plus className="size-4" aria-hidden /> Create a group
+        </Link>
+      </div>
       <div className="card divide-y divide-slate-200 dark:divide-slate-800">
         {memberships.length === 0 && (
-          <EmptyState title="You're not in any group yet">Ask a group official to add you using your phone number.</EmptyState>
+          <EmptyState title="You're not in any group yet">Create a group, or ask a group official to add you using your phone number.</EmptyState>
         )}
         {memberships.map((m) => (
           <Link
@@ -91,7 +96,7 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
               <span className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                 {m.is_official ? <Badge tone="brand">Official</Badge> : <Badge>Member</Badge>}
                 {m.role_name && <span>{m.role_name}</span>}
-                {m.group_status !== "active" && <Badge tone="warn">{m.group_status}</Badge>}
+                {m.group_status !== "active" && <Badge tone="warn">{m.group_status === "setup" ? "Setting up" : m.group_status}</Badge>}
               </span>
             </span>
             <ArrowRight className="size-4 text-slate-400" aria-hidden />
