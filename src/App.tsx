@@ -45,6 +45,10 @@ import { AdminShell } from "./pages/admin/AdminShell";
 import { AdminTransactionsPage } from "./pages/admin/AdminTransactionsPage";
 import { AdminUserPage } from "./pages/admin/AdminUserPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { AdminAlertsPage, AdminPaymentsPage, AdminWebhooksPage } from "./pages/admin/AdminPaymentsPages";
+import { BankAlertsPage, BankDashboardPage, BankGroupPage, BankGroupsPage, BankHome, BankShell, BankStaffPage } from "./pages/bank/BankPages";
+import { GroupPaymentsPage, PayPage } from "./pages/payments/PayPage";
+import { ReconciliationPage } from "./pages/payments/ReconciliationPage";
 
 export function App() {
   return (
@@ -70,6 +74,9 @@ export function App() {
         <Route path="audit" element={<AdminAuditPage />} />
         <Route path="jobs" element={<AdminJobsPage />} />
         <Route path="sms" element={<AdminSMSPage />} />
+        <Route path="bank-transactions" element={<AdminAlertsPage />} />
+        <Route path="payments" element={<AdminPaymentsPage />} />
+        <Route path="webhooks" element={<AdminWebhooksPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/group/:groupId" element={<RequireAuth><AppShell section="group" /></RequireAuth>}>
@@ -98,6 +105,9 @@ export function App() {
         <Route path="debtors" element={<DebtorsPage />} />
         <Route path="debtors/:debtorId" element={<DebtorPage />} />
         <Route path="debtor-loan-types" element={<LoanTypesPage forDebtors />} />
+        <Route path="reconciliation" element={<ReconciliationPage />} />
+        <Route path="payments" element={<GroupPaymentsPage />} />
+        <Route path="pay" element={<PayPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/member/:groupId" element={<RequireAuth><AppShell section="member" /></RequireAuth>}>
@@ -114,6 +124,16 @@ export function App() {
         <Route path="bank-loans" element={<BankLoansPage />} />
         <Route path="bank-loans/:bankLoanId" element={<BankLoanPage />} />
         <Route path="loan-applications" element={<LoanApplicationsPage />} />
+        <Route path="pay" element={<PayPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+      <Route path="/bank" element={<RequireAuth><BankHome /></RequireAuth>} />
+      <Route path="/bank/:bankId" element={<RequireAuth><BankShell /></RequireAuth>}>
+        <Route index element={<BankDashboardPage />} />
+        <Route path="groups" element={<BankGroupsPage />} />
+        <Route path="groups/:groupId" element={<BankGroupPage />} />
+        <Route path="transactions" element={<BankAlertsPage />} />
+        <Route path="staff" element={<BankStaffPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       {/* Links from before the sections split. AppShell moves members on to /member. */}

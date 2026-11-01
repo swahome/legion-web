@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, LogOut, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, Landmark, LogOut, Plus, ShieldCheck } from "lucide-react";
 import { useMe } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { lastGroup, sectionFor } from "../components/AppShell";
@@ -33,6 +33,8 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
     if (last) return <Navigate to={`/${sectionFor(last)}/${last.group_id}`} replace />;
     if (memberships.length === 1 && !isAdmin) return <Navigate to={`/${sectionFor(memberships[0]!)}/${memberships[0]!.group_id}`} replace />;
     if (memberships.length === 0 && isAdmin) return <Navigate to="/admin" replace />;
+    const bank = me.data.banks?.[0];
+    if (memberships.length === 0 && bank) return <Navigate to={`/bank/${bank.id}`} replace />;
   }
 
   function openById(e: FormEvent) {
@@ -71,6 +73,19 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
           <ArrowRight className="size-4 text-slate-400" aria-hidden />
         </Link>
       )}
+
+      {(me.data.banks ?? []).map((b) => (
+        <Link key={b.id} to={`/bank/${b.id}`} className="card mb-8 flex items-center gap-4 px-5 py-4 transition hover:border-brand-300">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-700 text-white">
+            <Landmark className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{b.name} panel</span>
+            <span className="block text-sm text-slate-500">Groups banking with {b.name}, their accounts and transactions</span>
+          </span>
+          <ArrowRight className="size-4 text-slate-400" aria-hidden />
+        </Link>
+      ))}
 
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-slate-500 uppercase">Your groups</h2>

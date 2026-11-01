@@ -49,11 +49,12 @@ Don't expose the API port to the internet. The API trusts `X-Forwarded-For` for 
 
 ## Sections and screens
 
-One app, one login, three sections. Each person lands in the section their role allows:
+One app, one login, four sections. Each person lands in the section their role allows:
 
 - `/admin`: platform admins (the `admin` platform role). Everyone else is sent to `/groups`.
 - `/group/:id`: a group's officials, and platform admins opening any group. Members who aren't officials are sent to `/member/:id`.
 - `/member/:id`: a group's members. Officials can switch to it with "View as a member", which hides the official tools.
+- `/bank/:id`: a bank's staff (`banks` in `/v1/me`), and platform admins for every bank.
 
 Old `/g/:id/...` links redirect to `/group/:id/...`.
 
@@ -70,11 +71,17 @@ Menus are fixed in code (`src/components/menus.ts`). Platform admins can switch 
 | `…/contributions` | members | Contributions (hidden ones for officials only) |
 | `/group/:id/contributions/new`, `/:contributionId` | officials edit | Create and edit, with schedule and member selection |
 | `/group/:id/arrears` | officials | Every active member's balance, most owed first |
+| `/group/:id/reconciliation` | officials | Bank and MPesa transactions on the group's accounts: record what each was for, match it to records entered by hand, set it aside or undo; auto-reconcile switches |
+| `/group/:id/payments` | officials | Every member's MPesa payments |
+| `/member/:id/pay` | members | Pay contributions, fines and loans with an MPesa prompt, and see my payments |
+| `/bank/:id` | bank staff | Dashboard by branch, groups banking there, their accounts and transactions, and staff (bank admins add and remove) |
 | `/admin` | platform admins | Platform counts and recent admin changes |
 | `/admin/groups` | platform admins | Search groups, open one as an official, suspend, close or reactivate |
 | `/admin/users`, `/admin/users/:id` | platform admins | Search, add and edit users, platform roles, set passwords, deactivate |
 | `/admin/transactions` | platform admins | Ledger entries across every group, with filters |
 | `/admin/banks`, `/admin/banks/:id` | platform admins | Banks and their branches |
+| `/admin/bank-transactions` | platform admins | Every bank and MPesa transaction; assign the ones no group account matched |
+| `/admin/payments`, `/admin/webhooks` | platform admins | Every MPesa payment, and the log of calls from the banks and Chamasoft |
 | `/admin/places` | platform admins | Countries (and the default country) and counties |
 | `/admin/settings` | platform admins | Menu switches and the imported platform settings |
 | `/admin/audit` | platform admins | The latest 100 admin changes |

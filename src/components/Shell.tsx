@@ -17,7 +17,7 @@ export interface NavItem {
  * Shell is the signed-in layout shared by the admin, group and member
  * sections: a sidebar (a drawer on small screens), and the page.
  */
-export function Shell({ label, title, header, nav }: { label: string; title: string; header: ReactNode; nav: NavItem[] }) {
+export function Shell({ label, title, header, nav, context }: { label: string; title: string; header: ReactNode; nav: NavItem[]; context?: unknown }) {
   const [navOpen, setNavOpen] = useState(false);
 
   const sidebar = (
@@ -75,7 +75,7 @@ export function Shell({ label, title, header, nav }: { label: string; title: str
       )}
 
       <main className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-        <Outlet />
+        <Outlet context={context} />
       </main>
     </div>
   );
