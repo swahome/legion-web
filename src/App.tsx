@@ -46,6 +46,7 @@ import { AdminTransactionsPage } from "./pages/admin/AdminTransactionsPage";
 import { AdminUserPage } from "./pages/admin/AdminUserPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { AdminAlertsPage, AdminPaymentsPage, AdminWebhooksPage } from "./pages/admin/AdminPaymentsPages";
+import { AdminChannelsPage } from "./pages/admin/AdminChannelsPage";
 import { BankAlertsPage, BankDashboardPage, BankGroupPage, BankGroupsPage, BankHome, BankShell, BankStaffPage } from "./pages/bank/BankPages";
 import { GroupPaymentsPage, PayPage } from "./pages/payments/PayPage";
 import { ReconciliationPage } from "./pages/payments/ReconciliationPage";
@@ -77,6 +78,7 @@ export function App() {
         <Route path="bank-transactions" element={<AdminAlertsPage />} />
         <Route path="payments" element={<AdminPaymentsPage />} />
         <Route path="webhooks" element={<AdminWebhooksPage />} />
+        <Route path="channels" element={<AdminChannelsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
       <Route path="/group/:groupId" element={<RequireAuth><AppShell section="group" /></RequireAuth>}>
