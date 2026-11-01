@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft, Pencil, Send } from "lucide-react";
+import { useInviteMember } from "../api/account";
+import { ApiError } from "../api/client";
 import { useGroup, useMember, useRoles, useUpdateMember } from "../api/hooks";
 import type { Member, MembershipStatus } from "../api/types";
 import { useGroupBase, useGroupId, useManaging } from "../components/AppShell";
@@ -36,9 +38,12 @@ export function MemberPage() {
         }
         actions={
           official && (
-            <button className="btn-secondary" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" aria-hidden /> Edit membership
-            </button>
+            <>
+              {group.data?.status === "active" && m.status === "active" && m.id !== group.data.my_membership_id && <InviteButton groupId={groupId} m={m} />}
+              <button className="btn-secondary" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" aria-hidden /> Edit membership
+              </button>
+            </>
           )
         }
       />
@@ -47,6 +52,18 @@ export function MemberPage() {
       <StatementView groupId={groupId} memberId={memberId} />
       {official && editing && <EditMemberDialog groupId={groupId} member={m} open onClose={() => setEditing(false)} />}
     </>
+  );
+}
+
+/** InviteButton texts the member their invite again. */
+function InviteButton({ groupId, m }: { groupId: number; m: Member }) {
+  const invite = useInviteMember(groupId);
+  if (invite.isSuccess) return <span className="self-center text-sm text-slate-500">Invite texted</span>;
+  const failed = invite.error instanceof ApiError && invite.error.code === "no_phone" ? "No phone number" : invite.isError ? "Couldn't send" : null;
+  return (
+    <button className="btn-secondary" disabled={invite.isPending || !m.phone} title={m.phone ? undefined : "This member has no phone number"} onClick={() => invite.mutate(m.id)}>
+      <Send className="size-4" aria-hidden /> {invite.isPending ? "Sending…" : failed ?? "Text invite"}
+    </button>
   );
 }
 

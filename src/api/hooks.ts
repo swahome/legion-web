@@ -110,6 +110,8 @@ export interface AddMemberInput {
   is_official: boolean;
   role_id: number | null;
   membership_number?: string;
+  /** Text a live group's new member an invite (default true). Groups in setup text everyone when setup is complete. */
+  send_invite?: boolean;
 }
 
 export interface UpdateMemberInput {

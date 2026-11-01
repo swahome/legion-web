@@ -11,6 +11,8 @@ export interface User {
   email: string | null;
   phone: string | null;
   last_login_at: string | null;
+  /** The phone was confirmed with an SMS code. Needed to create a group. */
+  phone_verified?: boolean;
 }
 
 export interface Session {

@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation, useParams } from "react-router";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, Rocket } from "lucide-react";
 import { useGroup, useMe } from "../api/hooks";
 import type { Group } from "../api/types";
 import { isMenuOff, menuNav } from "./menus";
@@ -88,13 +88,19 @@ export function AppShell({ section }: { section: Section }) {
   const disabled = me.data?.disabled_menus ?? [];
   // A switched-off menu also closes its page. Detail pages stay reachable
   // from elsewhere, like a member opened from the arrears list.
-  if (isMenuOff(section, pathname.slice(base.length + 1), disabled)) return <Navigate to={base} replace />;
+  const sub = pathname.slice(base.length + 1);
+  if (isMenuOff(section, sub, disabled)) return <Navigate to={base} replace />;
+  // A group still being set up opens on the setup wizard.
+  const inSetup = g.status === "setup" && section === "group";
+  if (inSetup && sub === "") return <Navigate to={`${base}/setup`} replace />;
+  const nav = menuNav(section, base, g, disabled);
+  if (inSetup) nav.unshift({ to: `${base}/setup`, label: "Finish setup", icon: Rocket });
   return (
     <Shell
       label="Group"
       title={g.name}
       header={<GroupSwitcher g={g} section={section} />}
-      nav={menuNav(section, base, g, disabled)}
+      nav={nav}
     />
   );
 }
