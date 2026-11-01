@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Banknote, Building2, Contact, FileSignature, Percent, ArrowLeftRight, ArrowUpFromLine, BookOpen, ClipboardCheck, FileText, Gavel, HandCoins, Landmark, LayoutDashboard, ShieldCheck, Tags, Users } from "lucide-react";
+import { ArrowDownToLine, Scale, Smartphone, Banknote, Building2, Contact, FileSignature, Percent, ArrowLeftRight, ArrowUpFromLine, BookOpen, ClipboardCheck, FileText, Gavel, HandCoins, Landmark, LayoutDashboard, ShieldCheck, Tags, Users } from "lucide-react";
 import type { Group } from "../api/types";
 import type { Section } from "./AppShell";
 import type { NavItem } from "./Shell";
@@ -36,11 +36,14 @@ export const groupMenus: MenuDef[] = [
   { id: "group.withdrawals", section: "group", path: "withdrawals", label: "Withdrawals", icon: ArrowUpFromLine },
   { id: "group.withdrawal_requests", section: "group", path: "withdrawal-requests", label: "Withdrawal requests", icon: ClipboardCheck },
   { id: "group.transfers", section: "group", path: "transfers", label: "Transfers", icon: ArrowLeftRight },
+  { id: "group.reconciliation", section: "group", path: "reconciliation", label: "Reconciliation", icon: Scale },
+  { id: "group.payments", section: "group", path: "payments", label: "MPesa payments", icon: Smartphone },
   { id: "group.accounts", section: "group", path: "accounts", label: "Accounts", icon: Landmark },
   { id: "group.cash_book", section: "group", path: "cash-book", label: "Cash book", icon: BookOpen },
   { id: "group.categories", section: "group", path: "categories", label: "Categories", icon: Tags },
   { id: "member.overview", section: "member", path: "", label: "Overview", icon: LayoutDashboard, locked: true },
   { id: "member.statement", section: "member", path: "statement", label: "My statement", icon: FileText, needsMembership: true },
+  { id: "member.pay", section: "member", path: "pay", label: "Pay", icon: Smartphone, needsMembership: true },
   { id: "member.contributions", section: "member", path: "contributions", label: "Contributions", icon: HandCoins },
   { id: "member.members", section: "member", path: "members", label: "Members", icon: Users },
   { id: "member.fines", section: "member", path: "fines", label: "My fines", icon: Gavel, needsMembership: true },

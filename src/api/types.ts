@@ -40,6 +40,8 @@ export interface Me {
   memberships: Membership[];
   /** Menu ids a platform admin switched off, like "group.arrears". */
   disabled_menus: string[];
+  /** Banks whose panel the user can open (bank staff). */
+  banks?: { id: number; name: string; role: "admin" | "staff" }[];
 }
 
 export interface Group {
