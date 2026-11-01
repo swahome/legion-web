@@ -82,6 +82,7 @@ Menus are fixed in code (`src/components/menus.ts`). Platform admins can switch 
 | `/admin/banks`, `/admin/banks/:id` | platform admins | Banks and their branches |
 | `/admin/bank-transactions` | platform admins | Every bank and MPesa transaction; assign the ones no group account matched |
 | `/admin/payments`, `/admin/webhooks` | platform admins | Every MPesa payment, and the log of calls from the banks and Chamasoft |
+| `/admin/channels` | platform admins | USSD and WhatsApp: switch each on or off, a test phone that runs the real menus as you, and every conversation's transcript |
 | `/admin/places` | platform admins | Countries (and the default country) and counties |
 | `/admin/settings` | platform admins | Menu switches and the imported platform settings |
 | `/admin/audit` | platform admins | The latest 100 admin changes |
