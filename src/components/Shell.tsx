@@ -1,6 +1,6 @@
 import { useState, type ComponentType, type ReactNode } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
-import { LogOut, Menu, X } from "lucide-react";
+import { matchPath, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { useMe } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { fullName, initials } from "../lib/format";
@@ -11,38 +11,97 @@ export interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   end?: boolean;
+  /** A section: the item opens to show these links instead of being one. */
+  children?: NavItem[];
+}
+
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  cx(
+    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+    isActive
+      ? "bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
+      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+  );
+
+/** isUnder says whether the current path is one of a section's links. */
+function isUnder(n: NavItem, pathname: string): boolean {
+  return (n.children ?? []).some((c) => matchPath({ path: c.to, end: false }, pathname) || isUnder(c, pathname));
+}
+
+function NavSection({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+  const { pathname } = useLocation();
+  const active = isUnder(item, pathname);
+  const [open, setOpen] = useState(active);
+  const shown = open || active;
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={shown}
+        onClick={() => setOpen(!shown)}
+        className={cx(
+          "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800",
+          active ? "text-brand-800 dark:text-brand-200" : "text-slate-600 dark:text-slate-300",
+        )}
+      >
+        <item.icon className="size-4" aria-hidden />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown className={cx("size-4 text-slate-400 transition", shown && "rotate-180")} aria-hidden />
+      </button>
+      {shown && (
+        <div className="mt-1 ml-5 space-y-1 border-l border-slate-200 pl-2 dark:border-slate-800">
+          {item.children!.map((c) =>
+            c.children ? (
+              <NavSection key={c.label} item={c} onNavigate={onNavigate} />
+            ) : (
+              <NavLink key={c.to} to={c.to} end={c.end} onClick={onNavigate} className={linkClass}>
+                <c.icon className="size-4" aria-hidden />
+                {c.label}
+              </NavLink>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
  * Shell is the signed-in layout shared by the admin, group and member
  * sections: a sidebar (a drawer on small screens), and the page.
  */
-export function Shell({ label, title, header, nav, context }: { label: string; title: string; header: ReactNode; nav: NavItem[]; context?: unknown }) {
+export function Shell({
+  label,
+  title,
+  header,
+  nav,
+  context,
+  toolbar,
+}: {
+  label: string;
+  title: string;
+  header: ReactNode;
+  nav: NavItem[];
+  context?: unknown;
+  /** Shown above every page, on the right (the admin's quick actions). */
+  toolbar?: ReactNode;
+}) {
   const [navOpen, setNavOpen] = useState(false);
 
   const sidebar = (
     <nav aria-label={label} className="flex h-full flex-col gap-1 p-3">
       {header}
       <div className="mt-3 space-y-1 overflow-y-auto">
-        {nav.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.end}
-            onClick={() => setNavOpen(false)}
-            className={({ isActive }) =>
-              cx(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                isActive
-                  ? "bg-brand-50 text-brand-800 dark:bg-brand-900/40 dark:text-brand-200"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
-              )
-            }
-          >
-            <n.icon className="size-4" aria-hidden />
-            {n.label}
-          </NavLink>
-        ))}
+        {nav.map((n) =>
+          n.children ? (
+            <NavSection key={n.label} item={n} onNavigate={() => setNavOpen(false)} />
+          ) : (
+            <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setNavOpen(false)} className={linkClass}>
+              <n.icon className="size-4" aria-hidden />
+              {n.label}
+            </NavLink>
+          ),
+        )}
       </div>
       <div className="mt-auto">
         <UserMenu />
@@ -75,6 +134,7 @@ export function Shell({ label, title, header, nav, context }: { label: string; t
       )}
 
       <main className="mx-auto w-full max-w-6xl min-w-0 px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
+        {toolbar && <div className="mb-4 flex justify-end">{toolbar}</div>}
         <Outlet context={context} />
       </main>
     </div>

@@ -14,12 +14,37 @@ export interface Paged<T> {
 export interface AdminStats {
   groups: number;
   active_groups: number;
+  setup_groups: number;
+  suspended_groups: number;
+  closed_groups: number;
+  groups_today: number;
   users: number;
+  users_today: number;
   users_active_30d: number;
   memberships: number;
+  sms_total: number;
+  sms_sent_today: number;
+  sms_queued: number;
+  sms_failed_7d: number;
+  transaction_alerts: number;
+  alerts_unassigned: number;
+  accounts_connected: number;
+  payments_paid: number;
+  payments_paid_amount: Money;
+  invoices_today: number;
+  fine_invoices_today: number;
+  open_withdrawal_requests: number;
+  audit_entries: number;
 }
 
 export type GroupStatus = "setup" | "active" | "suspended" | "closed";
+
+export interface GroupContact {
+  user_id: number;
+  name: string;
+  phone: string | null;
+  email: string | null;
+}
 
 export interface AdminGroup {
   id: number;
@@ -29,9 +54,41 @@ export interface AdminGroup {
   status: GroupStatus;
   currency: string;
   country_code: string;
+  email: string | null;
+  phone: string | null;
   active_members: number;
+  registered_members: number;
+  last_seen_at: string | null;
+  contact: GroupContact | null;
   created_at: string;
 }
+
+export interface AdminGroupDetail extends Omit<AdminGroup, "contact"> {
+  contact: GroupContact | null;
+  timezone: string;
+  address: string | null;
+  updated_at: string;
+  created_by_name: string;
+  contributions: number;
+  accounts: number;
+  loans: number;
+  notifications_off: boolean;
+}
+
+export interface AdminRole {
+  role: PlatformRole;
+  name: string;
+  description: string;
+  users: number;
+}
+
+export type GroupListParams = {
+  q?: string;
+  status?: string;
+  view?: string;
+  sort?: string;
+  page?: number;
+};
 
 export const platformRoles = [
   "admin",
@@ -69,6 +126,7 @@ export interface AdminUser {
   created_at: string;
   platform_roles: PlatformRole[];
   groups?: number;
+  group_list?: { group_id: number; group_name: string; is_official: boolean }[];
   memberships?: AdminUserMembership[];
 }
 
@@ -159,12 +217,50 @@ export function useAdminStats() {
   return useQuery({ queryKey: ["admin", "stats"], queryFn: () => api.get<AdminStats>(`${a}/stats`) });
 }
 
-export function useAdminGroups(params: { q?: string; status?: string; page?: number }) {
+export function useAdminGroups(params: GroupListParams) {
   return useQuery({
     queryKey: ["admin", "groups", params],
     queryFn: () => api.get<Paged<AdminGroup>>(`${a}/groups${query(params)}`),
     placeholderData: keepPreviousData,
   });
+}
+
+export function useAdminGroup(id: number) {
+  return useQuery({ queryKey: ["admin", "group", id], queryFn: () => api.get<AdminGroupDetail>(`${a}/groups/${id}`) });
+}
+
+export interface AdminGroupInput {
+  status?: GroupStatus;
+  name?: string;
+  email?: string | null;
+  phone?: string | null;
+  notifications_off?: boolean;
+}
+
+export function useUpdateGroup(id: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdminGroupInput) => api.patch<AdminGroupDetail>(`${a}/groups/${id}`, input),
+    onSuccess: (data) => {
+      qc.setQueryData(["admin", "group", id], data);
+      qc.invalidateQueries({ queryKey: ["admin", "groups"] });
+      qc.invalidateQueries({ queryKey: ["admin", "stats"] });
+      qc.invalidateQueries({ queryKey: ["group", id] });
+    },
+  });
+}
+
+export function exportGroups(params: GroupListParams) {
+  const { page: _page, ...rest } = params;
+  return api.download(`${a}/groups/export${query(rest)}`, "groups.csv");
+}
+
+export function exportUsers(params: { q?: string; role?: string; active?: string }) {
+  return api.download(`${a}/users/export${query(params)}`, "users.csv");
+}
+
+export function useAdminRoles() {
+  return useQuery({ queryKey: ["admin", "roles"], queryFn: () => api.get<AdminRole[]>(`${a}/roles`) });
 }
 
 export function useSetGroupStatus() {
