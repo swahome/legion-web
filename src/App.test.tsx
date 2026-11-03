@@ -117,14 +117,45 @@ describe("role sections", () => {
     expect(path()).toBe("/groups");
   });
 
+  it("lets people with many groups search them on the check-in page", async () => {
+    const names = ["Jirani", "Imani Sacco", "Pamoja", "Umoja Welfare", "Tujenge"];
+    stub({
+      "/v1/me": me({
+        memberships: names.map((n, i) => ({
+          membership_id: i + 1, group_id: i + 10, group_name: n, group_slug: n.toLowerCase(), group_status: "active", currency: "KES",
+          is_official: i === 0, role_name: i === 0 ? "Chair" : null, status: "active",
+        })),
+      }),
+    });
+    renderAt("/groups");
+    const search = await screen.findByLabelText("Search your groups");
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const u = userEvent.setup();
+    await u.type(search, "sacco");
+    expect(screen.getByText("Imani Sacco")).toBeInTheDocument();
+    expect(screen.queryByText("Pamoja")).not.toBeInTheDocument();
+    await u.clear(search);
+    await u.type(search, "nothing like it");
+    expect(screen.getByText("No group matches")).toBeInTheDocument();
+  });
+
   it("opens the admin panel for platform admins", async () => {
     stub({
       "/v1/me": me({ platform_roles: ["admin"] }),
-      "/v1/admin/stats": { groups: 85, active_groups: 80, users: 868, users_active_30d: 12, memberships: 790 },
+      "/v1/admin/stats": {
+        groups: 85, active_groups: 80, setup_groups: 3, suspended_groups: 1, closed_groups: 1, groups_today: 2,
+        users: 868, users_today: 4, users_active_30d: 12, memberships: 790,
+        sms_total: 50, sms_sent_today: 5, sms_queued: 0, sms_failed_7d: 1,
+        transaction_alerts: 10, alerts_unassigned: 2, accounts_connected: 7, payments_paid: 9, payments_paid_amount: "4500.00",
+        invoices_today: 30, fine_invoices_today: 0, open_withdrawal_requests: 3, audit_entries: 20,
+      },
       "/v1/admin/audit": [],
     });
     renderAt("/admin");
     expect(await screen.findByText("868")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Admin" })).toBeInTheDocument();
+    expect(screen.getAllByRole("navigation", { name: "Admin" }).length).toBeGreaterThan(0);
+    // The dashboard links each count to its list, and failures stand out.
+    expect(screen.getByRole("link", { name: /Failed texts\s*1/ })).toHaveAttribute("href", "/admin/sms");
+    expect(screen.getByRole("button", { name: "Groups" })).toHaveAttribute("aria-expanded", "false");
   });
 });

@@ -37,7 +37,9 @@ import { WithdrawalsPage } from "./pages/money/WithdrawalsPage";
 import { AdminAuditPage } from "./pages/admin/AdminAuditPage";
 import { AdminJobsPage } from "./pages/admin/AdminJobsPage";
 import { AdminBankPage, AdminBanksPage } from "./pages/admin/AdminBanksPage";
+import { AdminGroupPage } from "./pages/admin/AdminGroupPage";
 import { AdminGroupsPage } from "./pages/admin/AdminGroupsPage";
+import { AdminRolesPage } from "./pages/admin/AdminRolesPage";
 import { AdminOverviewPage } from "./pages/admin/AdminOverviewPage";
 import { AdminPlacesPage } from "./pages/admin/AdminPlacesPage";
 import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage";
@@ -65,6 +67,12 @@ export function App() {
       <Route path="/admin" element={<RequireAuth><AdminShell /></RequireAuth>}>
         <Route index element={<AdminOverviewPage />} />
         <Route path="groups" element={<AdminGroupsPage />} />
+        <Route path="groups/setup" element={<AdminGroupsPage key="setup" view="setup" />} />
+        <Route path="groups/locked" element={<AdminGroupsPage key="locked" view="locked" />} />
+        <Route path="groups/archived" element={<AdminGroupsPage key="archived" view="archived" />} />
+        <Route path="groups/inactive" element={<AdminGroupsPage key="inactive" view="inactive" />} />
+        <Route path="groups/:groupId" element={<AdminGroupPage />} />
+        <Route path="roles" element={<AdminRolesPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="users/:userId" element={<AdminUserPage />} />
         <Route path="transactions" element={<AdminTransactionsPage />} />

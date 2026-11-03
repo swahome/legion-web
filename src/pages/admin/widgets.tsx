@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link } from "react-router";
+import { ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import type { Paged } from "../../api/admin";
 import { Badge, Dialog, InlineError } from "../../components/ui";
 
@@ -53,8 +54,11 @@ export const td = "px-4 py-3";
 
 const statusTones = { active: "brand", setup: "neutral", suspended: "warn", closed: "danger" } as const;
 
+/** What the admin panel calls each group status (the old panel's words). */
+export const groupStatusLabels: Record<string, string> = { active: "Active", setup: "Setting up", suspended: "Locked", closed: "Archived" };
+
 export function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={statusTones[status as keyof typeof statusTones] ?? "neutral"}>{status}</Badge>;
+  return <Badge tone={statusTones[status as keyof typeof statusTones] ?? "neutral"}>{groupStatusLabels[status] ?? status}</Badge>;
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
@@ -105,4 +109,61 @@ export function formatDateTime(v: string | null): string {
   if (!v) return "—";
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? v : d.toLocaleString("en-KE", { dateStyle: "medium", timeStyle: "short" });
+}
+
+export interface MenuAction {
+  label: string;
+  to?: string;
+  onSelect?: () => void;
+}
+
+/** DropdownMenu is a button that opens a short list of links or actions. */
+export function DropdownMenu({ label, items, icon }: { label: string; items: MenuAction[]; icon?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" className="btn-secondary" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {icon}
+        {label}
+        <ChevronDown className="size-4" aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" className="card absolute right-0 z-30 mt-2 w-60 py-1 shadow-lg">
+          {items.map((it) =>
+            it.to ? (
+              <Link key={it.label} role="menuitem" to={it.to} onClick={() => setOpen(false)} className="block px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+                {it.label}
+              </Link>
+            ) : (
+              <button
+                key={it.label}
+                role="menuitem"
+                type="button"
+                className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                onClick={() => {
+                  setOpen(false);
+                  it.onSelect?.();
+                }}
+              >
+                {it.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

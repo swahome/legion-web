@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { ArrowRight, Landmark, LogOut, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, Landmark, Plus, Search, ShieldCheck } from "lucide-react";
 import { useMe } from "../api/hooks";
 import { useAuth } from "../auth/AuthProvider";
 import { lastGroup, sectionFor } from "../components/AppShell";
-import { Badge, EmptyState, ErrorState, Spinner } from "../components/ui";
-import { fullName } from "../lib/format";
+import { Avatar, Badge, EmptyState, ErrorState, Spinner } from "../components/ui";
+import { fullName, initials } from "../lib/format";
+import { DropdownMenu } from "./admin/widgets";
 
 /**
  * GroupPickerPage lists the user's groups. "/" lands here and jumps
@@ -17,6 +18,7 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [groupIdInput, setGroupIdInput] = useState("");
+  const [filter, setFilter] = useState("");
 
   if (me.isPending) return <Spinner label="Loading your groups" />;
   if (me.isError)
@@ -37,6 +39,9 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
     if (memberships.length === 0 && bank) return <Navigate to={`/bank/${bank.id}`} replace />;
   }
 
+  const needle = filter.trim().toLowerCase();
+  const shown = needle ? memberships.filter((m) => m.group_name.toLowerCase().includes(needle) || (m.role_name ?? "").toLowerCase().includes(needle)) : memberships;
+
   function openById(e: FormEvent) {
     e.preventDefault();
     const id = Number(groupIdInput);
@@ -50,15 +55,21 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
           <p className="text-sm text-slate-500">Welcome back,</p>
           <h1 className="text-2xl font-semibold tracking-tight">{fullName(user)}</h1>
         </div>
-        <button
-          className="btn-ghost"
-          onClick={async () => {
-            await logout();
-            navigate("/login", { replace: true });
-          }}
-        >
-          <LogOut className="size-4" aria-hidden /> Log out
-        </button>
+        <DropdownMenu
+          label={user.first_name || "Account"}
+          icon={<Avatar text={initials(user)} className="size-6 text-[10px]" />}
+          items={[
+            ...(isAdmin ? [{ label: "Admin panel", to: "/admin" }] : []),
+            { label: "Create a group", to: "/groups/new" },
+            {
+              label: "Log out",
+              onSelect: async () => {
+                await logout();
+                navigate("/login", { replace: true });
+              },
+            },
+          ]}
+        />
       </div>
 
       {isAdmin && (
@@ -93,11 +104,25 @@ export function GroupPickerPage({ autoEnter = false }: { autoEnter?: boolean }) 
           <Plus className="size-4" aria-hidden /> Create a group
         </Link>
       </div>
+      {memberships.length > 3 && (
+        <div className="relative mb-3">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
+          <input
+            type="search"
+            className="input pl-9"
+            placeholder="Search your groups"
+            aria-label="Search your groups"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </div>
+      )}
       <div className="card divide-y divide-slate-200 dark:divide-slate-800">
         {memberships.length === 0 && (
           <EmptyState title="You're not in any group yet">Create a group, or ask a group official to add you using your phone number.</EmptyState>
         )}
-        {memberships.map((m) => (
+        {memberships.length > 0 && shown.length === 0 && <EmptyState title="No group matches" />}
+        {shown.map((m) => (
           <Link
             key={m.membership_id}
             to={`/${sectionFor(m)}/${m.group_id}`}

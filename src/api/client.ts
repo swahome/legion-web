@@ -110,6 +110,29 @@ export class Client {
     return this.request<T>("DELETE", path);
   }
 
+  /** download fetches an authenticated file (a CSV export) and saves it in the browser. */
+  async download(path: string, fallbackName: string): Promise<void> {
+    if (!this.accessToken) await this.refresh();
+    const send = (token: string | null) =>
+      fetch(this.base + path, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: "same-origin" });
+    let res = await send(this.accessToken);
+    if (res.status === 401) {
+      const s = await this.refresh();
+      if (s) res = await send(s.access_token);
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new ApiError(res.status, data?.error?.code ?? "http_error", data?.error?.message ?? `Download failed (${res.status})`);
+    }
+    const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? fallbackName;
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /** request sends an authenticated call, refreshing once on an expired token. */
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     if (!this.accessToken) await this.refresh();

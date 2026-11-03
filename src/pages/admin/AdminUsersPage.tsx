@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router";
-import { platformRoles, useAdminUsers, useSaveUser } from "../../api/admin";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { Download, Loader2 } from "lucide-react";
+import { exportUsers, platformRoles, useAdminUsers, useSaveUser, type AdminUser } from "../../api/admin";
 import { Badge, Dialog, EmptyState, ErrorState, Field, InlineError, PageHeader, Spinner } from "../../components/ui";
 import { fullName } from "../../lib/format";
 import { ActiveBadge, formatDateTime, Pager, SearchBox, tbody, td, Th, theadRow, useDebounced } from "./widgets";
@@ -18,11 +19,20 @@ export const roleLabels: Record<string, string> = {
 };
 
 export function AdminUsersPage() {
+  const [params, setParams] = useSearchParams();
   const [q, setQ] = useState("");
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState(params.get("role") ?? "");
   const [active, setActive] = useState("");
   const [page, setPage] = useState(1);
-  const [adding, setAdding] = useState(false);
+  const adding = params.get("add") === "1";
+  const setAdding = (v: boolean) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set("add", "1");
+    else next.delete("add");
+    setParams(next, { replace: true });
+  };
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<unknown>(null);
   const search = useDebounced(q);
   const users = useAdminUsers({ q: search, role, active, page });
   const reset = (fn: (v: string) => void) => (v: string) => {
@@ -36,11 +46,36 @@ export function AdminUsersPage() {
         title="Users"
         subtitle="Everyone with a Legion login."
         actions={
-          <button className="btn-primary" onClick={() => setAdding(true)}>
-            Add user
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="btn-secondary"
+              disabled={exporting}
+              onClick={async () => {
+                setExporting(true);
+                setExportError(null);
+                try {
+                  await exportUsers({ q: search, role, active });
+                } catch (e) {
+                  setExportError(e);
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              {exporting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Download className="size-4" aria-hidden />}
+              Export to CSV
+            </button>
+            <button className="btn-primary" onClick={() => setAdding(true)}>
+              Add user
+            </button>
+          </div>
         }
       />
+      {exportError != null && (
+        <div className="mb-4">
+          <InlineError error={exportError} />
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap gap-2">
         <SearchBox label="Search name, phone or email" value={q} onChange={reset(setQ)} />
         <select className="input w-auto" aria-label="Platform role" value={role} onChange={(e) => reset(setRole)(e.target.value)}>
@@ -71,7 +106,7 @@ export function AdminUsersPage() {
                 <tr className={theadRow}>
                   <Th>Name</Th>
                   <Th>Phone and email</Th>
-                  <Th right>Groups</Th>
+                  <Th>Groups</Th>
                   <Th>Last sign-in</Th>
                   <Th>Status</Th>
                 </tr>
@@ -95,7 +130,9 @@ export function AdminUsersPage() {
                       <div>{u.phone ?? "—"}</div>
                       <div className="text-xs text-slate-500">{u.email}</div>
                     </td>
-                    <td className={`${td} text-right tabular-nums`}>{u.groups ?? 0}</td>
+                    <td className={td}>
+                      <UserGroups groups={u.group_list ?? []} />
+                    </td>
                     <td className={td}>{formatDateTime(u.last_login_at)}</td>
                     <td className={td}>
                       <ActiveBadge active={u.is_active} />
@@ -110,6 +147,31 @@ export function AdminUsersPage() {
       )}
       <AddUserDialog open={adding} onClose={() => setAdding(false)} />
     </>
+  );
+}
+
+function UserGroups({ groups }: { groups: NonNullable<AdminUser["group_list"]> }) {
+  const [all, setAll] = useState(false);
+  if (groups.length === 0) return <span className="text-slate-400">None</span>;
+  const shown = all ? groups : groups.slice(0, 3);
+  return (
+    <ul className="space-y-0.5">
+      {shown.map((g) => (
+        <li key={g.group_id}>
+          <Link to={`/admin/groups/${g.group_id}`} className="hover:underline">
+            {g.group_name}
+          </Link>
+          {g.is_official && <span className="ml-1 text-xs text-slate-500">(official)</span>}
+        </li>
+      ))}
+      {groups.length > 3 && (
+        <li>
+          <button className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300" onClick={() => setAll(!all)}>
+            {all ? "Show fewer" : `and ${groups.length - 3} more`}
+          </button>
+        </li>
+      )}
+    </ul>
   );
 }
 
